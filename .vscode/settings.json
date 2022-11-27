@@ -23,6 +23,7 @@
     "array": "c",
     "compare": "c",
     "variant": "c",
-    "unordered_map": "c"
+    "unordered_map": "c",
+    "memory.h": "c"
   }
 }
