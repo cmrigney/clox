@@ -24,6 +24,8 @@
     "compare": "c",
     "variant": "c",
     "unordered_map": "c",
-    "memory.h": "c"
+    "memory.h": "c",
+    "string": "c",
+    "iosfwd": "c"
   }
 }
