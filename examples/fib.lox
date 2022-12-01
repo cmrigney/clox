@@ -37,3 +37,6 @@ for(var i = 0; i < count; i = i + 1) {
 
 print "Run time for Native Fib with Args Check (seconds):";
 print clock() - start;
+
+print "Now causing a runtime error...";
+fibNativeArgsCheck("Wrong arg");

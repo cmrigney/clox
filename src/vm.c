@@ -12,6 +12,8 @@
 
 VM vm;
 
+static void runtimeError(const char* format, ...);
+
 static Value clockNative(int argCount, Value* args) {
   return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
 }
@@ -27,8 +29,12 @@ static Value fibNative(int argCount, Value* args) {
 }
 
 static Value fibNativeArgsCheck(int argCount, Value* args) {
-  if(argCount != 1 || !IS_NUMBER(args[0])) {
-    return NUMBER_VAL(-1); // should be runtime error
+  if(argCount != 1) {
+    runtimeError("Expected 1 argument but got %d.", argCount);
+    return RUNTIME_ERR_VAL();
+  } else if(!IS_NUMBER(args[0])) {
+    runtimeError("Expected argument to be a number.");
+    return RUNTIME_ERR_VAL();
   }
   double n = AS_NUMBER(args[0]);
   return NUMBER_VAL(fibInternal(n));
@@ -129,6 +135,9 @@ static bool callValue(Value callee, int argCount) {
       case OBJ_NATIVE: {
         NativeFn native = AS_NATIVE(callee);
         Value result = native(argCount, vm.stackTop - argCount);
+        if(IS_RUNTIME_ERROR(result)) {
+          return false;
+        }
         vm.stackTop -= argCount + 1;
         push(result);
         return true;
