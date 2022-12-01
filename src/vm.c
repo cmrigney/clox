@@ -16,6 +16,24 @@ static Value clockNative(int argCount, Value* args) {
   return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
 }
 
+double fibInternal(double n) {
+  if(n <= 1) return n;
+  return fibInternal(n - 2) + fibInternal(n - 1);
+}
+
+static Value fibNative(int argCount, Value* args) {
+  double n = AS_NUMBER(args[0]);
+  return NUMBER_VAL(fibInternal(n));
+}
+
+static Value fibNativeArgsCheck(int argCount, Value* args) {
+  if(argCount != 1 || !IS_NUMBER(args[0])) {
+    return NUMBER_VAL(-1); // should be runtime error
+  }
+  double n = AS_NUMBER(args[0]);
+  return NUMBER_VAL(fibInternal(n));
+}
+
 static void resetStack() {
   vm.stackTop = vm.stack;
   vm.frameCount = 0;
@@ -60,6 +78,8 @@ void initVM() {
   initTable(&vm.strings);
 
   defineNative("clock", clockNative);
+  defineNative("fibNative", fibNative);
+  defineNative("fibNativeArgsCheck", fibNativeArgsCheck);
 }
 
 void freeVM() {

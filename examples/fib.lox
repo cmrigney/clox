@@ -1,15 +1,39 @@
-
+var count = 35;
 
 fun fib(n) {
   if(n <= 1) return n;
   return fib(n - 2) + fib(n - 1);
 }
 
+print "Running Lox Fib...";
+
 var start = clock();
 
-for(var i = 0; i < 25; i = i + 1) {
-  print fib(i);
+for(var i = 0; i < count; i = i + 1) {
+  fib(i);
 }
 
-print "Run time (seconds):";
+print "Run time for Lox Fib (seconds):";
+print clock() - start;
+
+print "Running Native Fib...";
+
+start = clock();
+
+for(var i = 0; i < count; i = i + 1) {
+  fibNative(i);
+}
+
+print "Run time for Native Fib (seconds):";
+print clock() - start;
+
+print "Running Native Fib with Args Check...";
+
+start = clock();
+
+for(var i = 0; i < count; i = i + 1) {
+  fibNativeArgsCheck(i);
+}
+
+print "Run time for Native Fib with Args Check (seconds):";
 print clock() - start;
