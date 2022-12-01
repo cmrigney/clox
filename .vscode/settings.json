@@ -26,6 +26,13 @@
     "unordered_map": "c",
     "memory.h": "c",
     "string": "c",
-    "iosfwd": "c"
+    "iosfwd": "c",
+    "__config": "c",
+    "__debug": "c",
+    "__string": "c",
+    "exception": "c",
+    "functional": "c",
+    "algorithm": "c",
+    "complex": "c"
   }
 }
