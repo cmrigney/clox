@@ -1,0 +1,42 @@
+var global = 5;
+
+fun value(val) {
+  var result = val;
+  fun add(val2) {
+    result = result + val2;
+  }
+  fun sub(val2) {
+    result = result - val2;
+  }
+  fun mult(val2) {
+    result = result * val2;
+  }
+  fun div(val2) {
+    result = result / val2;
+  }
+
+  fun call(fn, val2) {
+    if(fn == "add") {
+      add(val2);
+    } else if(fn == "sub") {
+      sub(val2);
+    } else if(fn == "mult") {
+      mult(val2);
+    } else if(fn == "div") {
+      div(val2);
+    } else if(fn == "value") {
+      global = result;
+      return result;
+    }
+  }
+
+  return call;
+}
+
+var x = value(5);
+x("add", 2);
+x("mult", 2);
+// prints 14
+print x("value", nil);
+// prints 14
+print global;

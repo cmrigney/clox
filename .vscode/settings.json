@@ -34,5 +34,6 @@
     "functional": "c",
     "algorithm": "c",
     "complex": "c"
-  }
+  },
+  "cmake.configureOnOpen": true
 }
