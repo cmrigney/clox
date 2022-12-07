@@ -33,7 +33,8 @@
     "exception": "c",
     "functional": "c",
     "algorithm": "c",
-    "complex": "c"
+    "complex": "c",
+    "stdbool.h": "c"
   },
   "cmake.configureOnOpen": true
 }
