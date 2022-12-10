@@ -12,6 +12,7 @@ typedef enum {
   OP_JUMP,
   OP_JUMP_IF_FALSE,
   OP_CALL,
+  OP_INVOKE,
   OP_CLOSURE,
   OP_CLOSE_UPVALUE,
   OP_RETURN,
@@ -37,6 +38,7 @@ typedef enum {
   OP_MULTIPLY,
   OP_DIVIDE,
   OP_CLASS,
+  OP_METHOD,
 } OpCode;
 
 typedef struct {

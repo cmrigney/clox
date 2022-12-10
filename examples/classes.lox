@@ -1,0 +1,15 @@
+class Breakfast {
+  init(food) {
+    this.food = food;
+  }
+
+  cook(util) {
+    print "Cooking " + this.food + " with " + util + ".";
+  }
+}
+
+var breakfast = Breakfast("bacon");
+breakfast.cook("tongs");
+
+breakfast.food = "eggs";
+breakfast.cook("spatula");
