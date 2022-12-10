@@ -34,7 +34,10 @@
     "functional": "c",
     "algorithm": "c",
     "complex": "c",
-    "stdbool.h": "c"
+    "stdbool.h": "c",
+    "__locale": "c",
+    "__threading_support": "c",
+    "string_view": "c"
   },
   "cmake.configureOnOpen": true
 }
