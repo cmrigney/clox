@@ -1,0 +1,33 @@
+class Breakfast {
+  init(food) {
+    this.food = food;
+  }
+
+  cook() {
+    print "Cooking " + this.food;
+  }
+
+  eat() {
+    print "Yummy " + this.food;
+  }
+}
+
+class Bacon < Breakfast {
+  init() {
+    super.init("bacon");
+  }
+
+  cookAll() {
+    this.cook();
+    super.cook();
+  }
+
+  cook() {
+    print "Cooking in subclass.";
+  }
+}
+
+var bacon = Bacon();
+bacon.cook();
+bacon.cookAll();
+bacon.eat();
