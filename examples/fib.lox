@@ -6,10 +6,14 @@ fun fib(n) {
 }
 
 var start = clock();
+var result = 0;
 
-for(var i = 0; i < 25; i = i + 1) {
-  print fib(i);
+for(var i = 0; i < 40; i = i + 1) {
+  result = result + fib(i);
 }
 
+var diff = clock() - start;
+print "Result";
+print result;
 print "Run time (seconds):";
-print clock() - start;
+print diff;
