@@ -259,11 +259,12 @@ static void concatenate() {
 
 static InterpretResult run() {
   CallFrame* frame = &vm.frames[vm.frameCount - 1];
+  register uint8_t* ip = frame->ip;
 
 #ifdef DEBUG_TRACE_EXECUTION
 #define DISPATCH() goto DO_DEBUG_PRINT
 #else
-#define DISPATCH() goto *dispatch_table[*frame->ip++]
+#define DISPATCH() goto *dispatch_table[*ip++]
 #endif
 
   static void* dispatch_table[] = {
@@ -306,11 +307,11 @@ static InterpretResult run() {
     &&DO_OP_METHOD,
   };
 
-#define READ_BYTE() (*frame->ip++)
+#define READ_BYTE() (*ip++)
 
 #define READ_SHORT() \
-    (frame->ip += 2, \
-    (uint16_t)((frame->ip[-2] << 8) | frame->ip[-1]))
+    (ip += 2, \
+    (uint16_t)((ip[-2] << 8) | ip[-1]))
 
 #define READ_CONSTANT() \
     (frame->closure->function->chunk.constants.values[READ_BYTE()])
@@ -318,6 +319,7 @@ static InterpretResult run() {
 #define BINARY_OP(valueType, op) \
     do { \
       if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) { \
+        frame->ip = ip; \
         runtimeError("Operands must be numbers."); \
         return INTERPRET_RUNTIME_ERROR; \
       } \
@@ -339,8 +341,8 @@ static InterpretResult run() {
       }
       printf("\n");
       disassembleInstruction(&frame->closure->function->chunk,
-          (int)(frame->ip - frame->closure->function->chunk.code));
-      goto *dispatch_table[*frame->ip++];
+          (int)(ip - frame->closure->function->chunk.code));
+      goto *dispatch_table[*ip++];
     }
     #endif
 
@@ -369,6 +371,7 @@ static InterpretResult run() {
       ObjString* name = READ_STRING();
       Value value;
       if (!tableGet(&vm.globals, name, &value)) {
+        frame->ip = ip;
         runtimeError("Undefined variable '%s'.", name->chars);
         return INTERPRET_RUNTIME_ERROR;
       }
@@ -384,7 +387,8 @@ static InterpretResult run() {
     DO_OP_SET_GLOBAL: {
       ObjString* name = READ_STRING();
       if (tableSet(&vm.globals, name, peek(0))) {
-        tableDelete(&vm.globals, name); 
+        tableDelete(&vm.globals, name);
+        frame->ip = ip;
         runtimeError("Undefined variable '%s'.", name->chars);
         return INTERPRET_RUNTIME_ERROR;
       }
@@ -402,6 +406,7 @@ static InterpretResult run() {
     }
     DO_OP_GET_PROPERTY: {
       if (!IS_INSTANCE(peek(0))) {
+        frame->ip = ip;
         runtimeError("Only instances have properties.");
         return INTERPRET_RUNTIME_ERROR;
       }
@@ -415,7 +420,7 @@ static InterpretResult run() {
         push(value);
         DISPATCH();
       }
-
+      frame->ip = ip;
       if (!bindMethod(instance->klass, name)) {
         return INTERPRET_RUNTIME_ERROR;
       }
@@ -423,6 +428,7 @@ static InterpretResult run() {
     }
     DO_OP_SET_PROPERTY: {
       if (!IS_INSTANCE(peek(1))) {
+        frame->ip = ip;
         runtimeError("Only instances have fields.");
         return INTERPRET_RUNTIME_ERROR;
       }
@@ -437,7 +443,7 @@ static InterpretResult run() {
     DO_OP_GET_SUPER: {
       ObjString* name = READ_STRING();
       ObjClass* superclass = AS_CLASS(pop());
-
+      frame->ip = ip;
       if (!bindMethod(superclass, name)) {
         return INTERPRET_RUNTIME_ERROR;
       }
@@ -459,6 +465,7 @@ static InterpretResult run() {
         double a = AS_NUMBER(pop());
         push(NUMBER_VAL(a + b));
       } else {
+        frame->ip = ip;
         runtimeError(
             "Operands must be two numbers or two strings.");
         return INTERPRET_RUNTIME_ERROR;
@@ -473,6 +480,7 @@ static InterpretResult run() {
       DISPATCH();
     DO_OP_NEGATE:
       if (!IS_NUMBER(peek(0))) {
+        frame->ip = ip;
         runtimeError("Operand must be a number.");
         return INTERPRET_RUNTIME_ERROR;
       }
@@ -485,44 +493,50 @@ static InterpretResult run() {
     }
     DO_OP_JUMP: {
       uint16_t offset = READ_SHORT();
-      frame->ip += offset;
+      ip += offset;
       DISPATCH();
     }
     DO_OP_JUMP_IF_FALSE: {
       uint16_t offset = READ_SHORT();
-      if (isFalsey(peek(0))) frame->ip += offset;
+      if (isFalsey(peek(0))) ip += offset;
       DISPATCH();
     }
     DO_OP_LOOP: {
       uint16_t offset = READ_SHORT();
-      frame->ip -= offset;
+      ip -= offset;
       DISPATCH();
     }
     DO_OP_CALL: {
       int argCount = READ_BYTE();
+      frame->ip = ip;
       if (!callValue(peek(argCount), argCount)) {
         return INTERPRET_RUNTIME_ERROR;
       }
       frame = &vm.frames[vm.frameCount - 1];
+      ip = frame->ip;
       DISPATCH();
     }
     DO_OP_INVOKE: {
       ObjString* method = READ_STRING();
       int argCount = READ_BYTE();
+      frame->ip = ip;
       if (!invoke(method, argCount)) {
         return INTERPRET_RUNTIME_ERROR;
       }
       frame = &vm.frames[vm.frameCount - 1];
+      ip = frame->ip;
       DISPATCH();
     }
     DO_OP_SUPER_INVOKE: {
       ObjString* method = READ_STRING();
       int argCount = READ_BYTE();
       ObjClass* superclass = AS_CLASS(pop());
+      frame->ip = ip;
       if (!invokeFromClass(superclass, method, argCount)) {
         return INTERPRET_RUNTIME_ERROR;
       }
       frame = &vm.frames[vm.frameCount - 1];
+      ip = frame->ip;
       DISPATCH();
     }
     DO_OP_CLOSURE: {
@@ -557,6 +571,7 @@ static InterpretResult run() {
       vm.stackTop = frame->slots;
       push(result);
       frame = &vm.frames[vm.frameCount - 1];
+      ip = frame->ip;
       DISPATCH();
     }
     DO_OP_CLASS: {
@@ -566,6 +581,7 @@ static InterpretResult run() {
     DO_OP_INHERIT: {
       Value superclass = peek(1);
       if (!IS_CLASS(superclass)) {
+        frame->ip = ip;
         runtimeError("Superclass must be a class.");
         return INTERPRET_RUNTIME_ERROR;
       }
