@@ -37,7 +37,8 @@
     "stdbool.h": "c",
     "__locale": "c",
     "__threading_support": "c",
-    "string_view": "c"
+    "string_view": "c",
+    "native.h": "c"
   },
   "cmake.configureOnOpen": true
 }

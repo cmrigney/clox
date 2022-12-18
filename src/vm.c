@@ -9,93 +9,14 @@
 #include "object.h"
 #include "memory.h"
 #include "vm.h"
+#include "native/native.h"
 
 VM vm;
 static void concatenate();
 static bool call(ObjClosure* closure, int argCount);
 static bool callValue(Value callee, int argCount);
 
-static Value clockNative(Value *receiver, int argCount, Value* args) {
-  return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
-}
-
-static Value array(Value *receiver, int argCount, Value* args) {
-  ObjArray *value = newArray();
-  ValueArray *arr = &value->values;
-  push(OBJ_VAL(value));
-  for (int i = 0; i < argCount; i++) {
-    writeValueArray(arr, args[i]);
-  }
-  pop();
-  return OBJ_VAL(value);
-}
-
-static Value array_count(Value *receiver, int argCount, Value *args) {
-  if (argCount != 0) {
-    // runtimeError("Expected 0 arguments for 'count' but got %d.", argCount);
-    return NIL_VAL;
-  }
-  if(!IS_ARRAY(*receiver)) {
-    // runtimeError("Value is not an array.");
-    return NIL_VAL;
-  }
-  ObjArray *array = AS_ARRAY(*receiver);
-  return NUMBER_VAL(array->values.count);
-}
-
-static Value array_push(Value *receiver, int argCount, Value *args) {
-  if (argCount != 1) {
-    // runtimeError("Expected 1 argument for 'push' but got %d.", argCount);
-    return NIL_VAL;
-  }
-  if(!IS_ARRAY(*receiver)) {
-    // runtimeError("Value is not an array.");
-    return NIL_VAL;
-  }
-  ObjArray *array = AS_ARRAY(*receiver);
-  writeValueArray(&array->values, args[0]);
-  return OBJ_VAL(array);
-}
-
-static Value array_pop(Value *receiver, int argCount, Value *args) {
-  if (argCount != 0) {
-    // runtimeError("Expected 0 arguments for 'pop' but got %d.", argCount);
-    return NIL_VAL;
-  }
-  if(!IS_ARRAY(*receiver)) {
-    // runtimeError("Value is not an array.");
-    return NIL_VAL;
-  }
-  ObjArray *array = AS_ARRAY(*receiver);
-  if (array->values.count == 0) {
-    return NIL_VAL;
-  }
-  return array->values.values[--array->values.count];
-}
-
-static Value array_get(Value *receiver, int argCount, Value *args) {
-  if (argCount != 1) {
-    // runtimeError("Expected 1 argument for 'get' but got %d.", argCount);
-    return NIL_VAL;
-  }
-  if(!IS_ARRAY(*receiver)) {
-    // runtimeError("Value is not an array.");
-    return NIL_VAL;
-  }
-  ObjArray *array = AS_ARRAY(*receiver);
-  if (!IS_NUMBER(args[0])) {
-    // runtimeError("Index must be a number.");
-    return NIL_VAL;
-  }
-  int index = AS_NUMBER(args[0]);
-  if (index < 0 || index >= array->values.count) {
-    // runtimeError("Index out of bounds.");
-    return NIL_VAL;
-  }
-  return array->values.values[index];
-}
-
-static Value callLoxCode(const char* name, Value *receiver, int argCount, Value *args) {
+Value callLoxCode(const char* name, Value *receiver, int argCount, Value *args) {
   ObjString *key = copyString(name, (int)strlen(name));
   Value fn;
   if(!tableGet(&vm.globals, key, &fn)) {
@@ -126,16 +47,6 @@ static Value callLoxCode(const char* name, Value *receiver, int argCount, Value 
   }
   callValue(fn, argCount + 1);
   return NIL_VAL;
-}
-
-static Value array_filter(Value *receiver, int argCount, Value *args) {
-  // TODO verify args
-  return callLoxCode("_array_filter", receiver, argCount, args);
-}
-
-static Value array_map(Value *receiver, int argCount, Value *args) {
-  // TODO verify args
-  return callLoxCode("_array_map", receiver, argCount, args);
 }
 
 static ObjString* getBoundNativeFnName(ObjType type, const char* name) {
