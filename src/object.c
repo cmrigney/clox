@@ -25,6 +25,12 @@ static Obj* allocateObject(size_t size, ObjType type) {
   return object;
 }
 
+ObjArray* newArray() {
+  ObjArray* array = ALLOCATE_OBJ(ObjArray, OBJ_ARRAY);
+  initValueArray(&array->values);
+  return array;
+}
+
 ObjBoundMethod* newBoundMethod(Value receiver,
                                ObjClosure* method) {
   ObjBoundMethod* bound = ALLOCATE_OBJ(ObjBoundMethod,
@@ -71,9 +77,18 @@ ObjInstance* newInstance(ObjClass* klass) {
   return instance;
 }
 
-ObjNative* newNative(NativeFn function) {
+ObjNative* newNative(NativeFn function, bool callsLox) {
   ObjNative* native = ALLOCATE_OBJ(ObjNative, OBJ_NATIVE);
   native->function = function;
+  native->callsLox = callsLox;
+  return native;
+}
+
+ObjBoundNative* newBoundNative(Value receiver, NativeFn function, bool callsLox) {
+  ObjBoundNative* native = ALLOCATE_OBJ(ObjBoundNative, OBJ_BOUND_NATIVE);
+  native->function = function;
+  native->receiver = receiver;
+  native->callsLox = callsLox;
   return native;
 }
 
@@ -163,11 +178,24 @@ void printObject(Value value) {
     case OBJ_NATIVE:
       printf("<native fn>");
       break;
+    case OBJ_BOUND_NATIVE:
+      printf("<bound native fn>");
+      break;
     case OBJ_STRING:
       printf("%s", AS_CSTRING(value));
       break;
     case OBJ_UPVALUE:
       printf("upvalue");
+      break;
+    case OBJ_ARRAY:
+      printf("Array(");
+      for(int i = 0; i < AS_ARRAY(value)->values.count; i++) {
+        printValue(AS_ARRAY(value)->values.values[i]);
+        if(i < AS_ARRAY(value)->values.count - 1) {
+          printf(", ");
+        }
+      }
+      printf(")");
       break;
   }
 }

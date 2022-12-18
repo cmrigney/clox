@@ -57,12 +57,18 @@ static void runFile(const char* path) {
   if (result == INTERPRET_RUNTIME_ERROR) exit(70);
 }
 
+static void setupStdLib() {
+  runFile("stdlib/lib.lox");
+}
+
 int main(int argc, const char* argv[]) {
   initVM();
 
   if (argc == 1) {
+    setupStdLib();
     repl();
   } else if (argc == 2) {
+    setupStdLib();
     runFile(argv[1]);
   } else {
     fprintf(stderr, "Usage: clox [path]\n");

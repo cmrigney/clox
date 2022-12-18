@@ -73,6 +73,11 @@ static void blackenObject(Obj* object) {
 #endif
 
   switch (object->type) {
+    case OBJ_ARRAY: {
+      ObjArray* array = (ObjArray*)object;
+      markArray(&array->values);
+      break;
+    }
     case OBJ_BOUND_METHOD: {
       ObjBoundMethod* bound = (ObjBoundMethod*)object;
       markValue(bound->receiver);
@@ -108,6 +113,11 @@ static void blackenObject(Obj* object) {
     case OBJ_UPVALUE:
       markValue(((ObjUpvalue*)object)->closed);
       break;
+    case OBJ_BOUND_NATIVE: {
+      ObjBoundNative* bound = (ObjBoundNative*)object;
+      markValue(bound->receiver);
+      break;
+    }
     case OBJ_NATIVE:
     case OBJ_STRING:
       break;
@@ -120,6 +130,12 @@ static void freeObject(Obj* object) {
 #endif
 
   switch (object->type) {
+    case OBJ_ARRAY: {
+      ObjArray* array = (ObjArray*)object;
+      freeValueArray(&array->values);
+      FREE(ObjArray, object);
+      break;
+    }
     case OBJ_BOUND_METHOD: {
       FREE(ObjBoundMethod, object);
       break;
@@ -151,6 +167,10 @@ static void freeObject(Obj* object) {
     }
     case OBJ_NATIVE: {
       FREE(ObjNative, object);
+      break;
+    }
+    case OBJ_BOUND_NATIVE: {
+      FREE(ObjBoundNative, object);
       break;
     }
     case OBJ_STRING: {

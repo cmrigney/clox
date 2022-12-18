@@ -11,9 +11,140 @@
 #include "vm.h"
 
 VM vm;
+static void concatenate();
+static bool call(ObjClosure* closure, int argCount);
+static bool callValue(Value callee, int argCount);
 
-static Value clockNative(int argCount, Value* args) {
+static Value clockNative(Value *receiver, int argCount, Value* args) {
   return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
+}
+
+static Value array(Value *receiver, int argCount, Value* args) {
+  ObjArray *value = newArray();
+  ValueArray *arr = &value->values;
+  push(OBJ_VAL(value));
+  for (int i = 0; i < argCount; i++) {
+    writeValueArray(arr, args[i]);
+  }
+  pop();
+  return OBJ_VAL(value);
+}
+
+static Value array_count(Value *receiver, int argCount, Value *args) {
+  if (argCount != 0) {
+    // runtimeError("Expected 0 arguments for 'count' but got %d.", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_ARRAY(*receiver)) {
+    // runtimeError("Value is not an array.");
+    return NIL_VAL;
+  }
+  ObjArray *array = AS_ARRAY(*receiver);
+  return NUMBER_VAL(array->values.count);
+}
+
+static Value array_push(Value *receiver, int argCount, Value *args) {
+  if (argCount != 1) {
+    // runtimeError("Expected 1 argument for 'push' but got %d.", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_ARRAY(*receiver)) {
+    // runtimeError("Value is not an array.");
+    return NIL_VAL;
+  }
+  ObjArray *array = AS_ARRAY(*receiver);
+  writeValueArray(&array->values, args[0]);
+  return OBJ_VAL(array);
+}
+
+static Value array_pop(Value *receiver, int argCount, Value *args) {
+  if (argCount != 0) {
+    // runtimeError("Expected 0 arguments for 'pop' but got %d.", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_ARRAY(*receiver)) {
+    // runtimeError("Value is not an array.");
+    return NIL_VAL;
+  }
+  ObjArray *array = AS_ARRAY(*receiver);
+  if (array->values.count == 0) {
+    return NIL_VAL;
+  }
+  return array->values.values[--array->values.count];
+}
+
+static Value array_get(Value *receiver, int argCount, Value *args) {
+  if (argCount != 1) {
+    // runtimeError("Expected 1 argument for 'get' but got %d.", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_ARRAY(*receiver)) {
+    // runtimeError("Value is not an array.");
+    return NIL_VAL;
+  }
+  ObjArray *array = AS_ARRAY(*receiver);
+  if (!IS_NUMBER(args[0])) {
+    // runtimeError("Index must be a number.");
+    return NIL_VAL;
+  }
+  int index = AS_NUMBER(args[0]);
+  if (index < 0 || index >= array->values.count) {
+    // runtimeError("Index out of bounds.");
+    return NIL_VAL;
+  }
+  return array->values.values[index];
+}
+
+static Value callLoxCode(const char* name, Value *receiver, int argCount, Value *args) {
+  ObjString *key = copyString(name, (int)strlen(name));
+  Value fn;
+  if(!tableGet(&vm.globals, key, &fn)) {
+    // runtimeError("Could not find function '%s'.", fnName);
+    return NIL_VAL;
+  }
+  if (!IS_CLOSURE(fn)) {
+    // runtimeError("Function '%s' is not a closure.", fnName);
+    return NIL_VAL;
+  }
+
+  // Shift the args over one to make room for the receiver
+  Value newArgs[argCount + 1];
+  newArgs[0] = *receiver;
+  for (int i = 0; i < argCount; i++) {
+    newArgs[i + 1] = args[i];
+  }
+
+  for (int i = 0; i < argCount; i++) {
+    pop(); // pop the args off
+  }
+  pop(); // pop the existing function off
+
+  // Push the new function and args on
+  push(fn);
+  for (int i = 0; i < argCount + 1; i++) {
+    push(newArgs[i]);
+  }
+  callValue(fn, argCount + 1);
+  return NIL_VAL;
+}
+
+static Value array_filter(Value *receiver, int argCount, Value *args) {
+  // TODO verify args
+  return callLoxCode("_array_filter", receiver, argCount, args);
+}
+
+static Value array_map(Value *receiver, int argCount, Value *args) {
+  // TODO verify args
+  return callLoxCode("_array_map", receiver, argCount, args);
+}
+
+static ObjString* getBoundNativeFnName(ObjType type, const char* name) {
+  char typeString[8];
+  sprintf(typeString, "%d.", type);
+  push(OBJ_VAL(copyString(typeString, (int)strlen(typeString))));
+  push(OBJ_VAL(copyString(name, (int)strlen(name))));
+  concatenate();
+  return AS_STRING(pop());
 }
 
 static void resetStack() {
@@ -45,10 +176,19 @@ static void runtimeError(const char* format, ...) {
   resetStack();
 }
 
-static void defineNative(const char* name, NativeFn function) {
+static void defineNative(const char* name, NativeFn function, bool callsLox) {
   // garbage collection care
   push(OBJ_VAL(copyString(name, (int)strlen(name))));
-  push(OBJ_VAL(newNative(function)));
+  push(OBJ_VAL(newNative(function, callsLox)));
+  tableSet(&vm.globals, AS_STRING(vm.stack[0]), vm.stack[1]);
+  pop();
+  pop();
+}
+
+static void defineBoundNativeMethod(ObjType type, const char* name, NativeFn function, bool callsLox) {
+  ObjString *key = getBoundNativeFnName(type, name);
+  push(OBJ_VAL(key));
+  push(OBJ_VAL(newNative(function, callsLox)));
   tableSet(&vm.globals, AS_STRING(vm.stack[0]), vm.stack[1]);
   pop();
   pop();
@@ -71,7 +211,15 @@ void initVM() {
   vm.initString = NULL;
   vm.initString = copyString("init", 4);
 
-  defineNative("clock", clockNative);
+  defineNative("clock", clockNative, false);
+
+  defineNative("Array", array, false);
+  defineBoundNativeMethod(OBJ_ARRAY, "count", array_count, false);
+  defineBoundNativeMethod(OBJ_ARRAY, "push", array_push, false);
+  defineBoundNativeMethod(OBJ_ARRAY, "get", array_get, false);
+  defineBoundNativeMethod(OBJ_ARRAY, "pop", array_pop, false);
+  defineBoundNativeMethod(OBJ_ARRAY, "filter", array_filter, true);
+  defineBoundNativeMethod(OBJ_ARRAY, "map", array_map, true);
 }
 
 void freeVM() {
@@ -140,9 +288,20 @@ static bool callValue(Value callee, int argCount) {
         return call(AS_CLOSURE(callee), argCount);
       case OBJ_NATIVE: {
         NativeFn native = AS_NATIVE(callee);
-        Value result = native(argCount, vm.stackTop - argCount);
-        vm.stackTop -= argCount + 1;
-        push(result);
+        Value result = native(NULL, argCount, vm.stackTop - argCount);
+        if(!((ObjNative*)AS_OBJ(callee))->callsLox) {
+          vm.stackTop -= argCount + 1;
+          push(result);
+        }
+        return true;
+      }
+      case OBJ_BOUND_NATIVE: {
+        ObjBoundNative *native = AS_BOUND_NATIVE(callee);
+        Value result = native->function(&native->receiver, argCount, vm.stackTop - argCount);
+        if(!((ObjBoundNative*)AS_OBJ(callee))->callsLox) {
+          vm.stackTop -= argCount + 1;
+          push(result);
+        }
         return true;
       }
       default:
@@ -165,6 +324,17 @@ static bool invokeFromClass(ObjClass* klass, ObjString* name,
 
 static bool invoke(ObjString* name, int argCount) {
   Value receiver = peek(argCount);
+
+  // Handle native methods
+  if(!IS_INSTANCE(receiver) && IS_OBJ(receiver)) {
+    Value value;
+    ObjString *key = getBoundNativeFnName(AS_OBJ(receiver)->type, name->chars);
+    if(tableGet(&vm.globals, key, &value)) {
+      Value bound = OBJ_VAL(newBoundNative(receiver, AS_NATIVE(value), ((ObjNative*)AS_OBJ(value))->callsLox));
+      vm.stackTop[-argCount - 1] = bound;
+      return callValue(bound, argCount);
+    }
+  }
 
   if (!IS_INSTANCE(receiver)) {
     runtimeError("Only instances have methods.");
@@ -191,6 +361,19 @@ static bool bindMethod(ObjClass* klass, ObjString* name) {
 
   ObjBoundMethod* bound = newBoundMethod(peek(0),
                                          AS_CLOSURE(method));
+  pop();
+  push(OBJ_VAL(bound));
+  return true;
+}
+
+static bool bindNativeFn(Obj* obj, ObjString* name) {
+  Value function;
+  ObjString *key = getBoundNativeFnName(obj->type, name->chars);
+  if(!tableGet(&vm.globals, key, &function)) {
+    runtimeError("Undefined property '%s'.", name->chars);
+    return false;
+  }
+  ObjBoundNative* bound = newBoundNative(peek(0), AS_NATIVE(function), ((ObjNative*)AS_OBJ(function))->callsLox);
   pop();
   push(OBJ_VAL(bound));
   return true;
@@ -401,6 +584,16 @@ static InterpretResult run() {
       DISPATCH();
     }
     DO_OP_GET_PROPERTY: {
+      if(IS_ARRAY(peek(0))) {
+        Obj* obj = AS_OBJ(peek(0));
+        ObjString* name = READ_STRING();
+
+        if(!bindNativeFn(obj, name)) {
+          return INTERPRET_RUNTIME_ERROR;
+        }
+        DISPATCH();
+      }
+
       if (!IS_INSTANCE(peek(0))) {
         runtimeError("Only instances have properties.");
         return INTERPRET_RUNTIME_ERROR;
@@ -409,6 +602,7 @@ static InterpretResult run() {
       ObjInstance* instance = AS_INSTANCE(peek(0));
       ObjString* name = READ_STRING();
 
+      // Check properties first
       Value value;
       if (tableGet(&instance->fields, name, &value)) {
         pop(); // Instance.
@@ -416,6 +610,7 @@ static InterpretResult run() {
         DISPATCH();
       }
 
+      // otherwise bind method
       if (!bindMethod(instance->klass, name)) {
         return INTERPRET_RUNTIME_ERROR;
       }
