@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "memory.h"
@@ -43,6 +44,20 @@ static Entry* findEntry(Entry* entries, int capacity,
     // index = (index + 1) % capacity;
     index = (index + 1) & (capacity - 1); // optimization
   }
+}
+
+Entry *tableIterate(Table *table, Entry *previous) {
+  if(table->count == 0 || table->entries == NULL) return NULL;
+
+  int startingIndex = previous == NULL ? -1 : (previous - table->entries);
+  for(int i = startingIndex + 1; i < table->capacity; i++) {
+    Entry *entry = &table->entries[i];
+    // A valid entry that's not a tombstone
+    if(entry->key != NULL) {
+      return entry;
+    }
+  }
+  return NULL;
 }
 
 bool tableGet(Table* table, ObjString* key, Value* value) {

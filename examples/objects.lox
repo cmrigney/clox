@@ -1,0 +1,20 @@
+var testObject = .{
+  abc: 123,
+  xyz: true,
+  aaa: "bbb",
+};
+
+print testObject.abc;
+print testObject.xyz;
+print testObject.aaa;
+
+print testObject;
+
+var anotherTest = .{
+  embedded: .{
+    abc: testObject,
+    xyz: "HELLO"
+  },
+};
+
+print anotherTest;

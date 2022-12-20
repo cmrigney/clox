@@ -387,6 +387,7 @@ static InterpretResult run() {
     &&DO_OP_SET_UPVALUE,
     &&DO_OP_GET_PROPERTY,
     &&DO_OP_SET_PROPERTY,
+    &&DO_OP_SET_PROPERTY_SHADOWED,
     &&DO_OP_GET_SUPER,
     &&DO_OP_EQUAL,
     &&DO_OP_GREATER,
@@ -527,17 +528,26 @@ static InterpretResult run() {
       }
       DISPATCH();
     }
+    DO_OP_SET_PROPERTY_SHADOWED:
     DO_OP_SET_PROPERTY: {
       if (!IS_INSTANCE(peek(1))) {
         runtimeError("Only instances have fields.");
         return INTERPRET_RUNTIME_ERROR;
       }
 
+      int opCode = *(frame->ip - 1);
+
       ObjInstance* instance = AS_INSTANCE(peek(1));
       tableSet(&instance->fields, READ_STRING(), peek(0));
       Value value = pop();
       pop();
-      push(value);
+      // Shadowed version passes the instance back, not the value assigned
+      if(opCode == OP_SET_PROPERTY_SHADOWED) {
+        push(OBJ_VAL(instance));
+      }
+      else {
+        push(value);
+      }
       DISPATCH();
     }
     DO_OP_GET_SUPER: {

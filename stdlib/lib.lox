@@ -1,3 +1,5 @@
+class Object {}
+
 fun _array_filter(arr, callback) {
   var result = Array();
   for(var i = 0; i < arr.count(); i = i + 1) {

@@ -264,6 +264,7 @@ static void statement();
 static void declaration();
 static ParseRule* getRule(TokenType type);
 static void parsePrecedence(Precedence precedence);
+static Token syntheticToken(const char* text);
 
 static uint8_t identifierConstant(Token* name) {
   return makeConstant(OBJ_VAL(copyString(name->start,
@@ -447,6 +448,34 @@ static void dot(bool canAssign) {
   }
 }
 
+static void dotObj(bool canAssign) {
+  consume(TOKEN_LEFT_BRACE, "Expect '{' after '.' for object literal.");
+
+  Token objectToken = syntheticToken("Object");
+  objectToken.type = TOKEN_IDENTIFIER;
+
+  // Construct an object
+  uint8_t objectClass = identifierConstant(&objectToken);
+  emitBytes(OP_GET_GLOBAL, objectClass);
+  emitBytes(OP_CALL, 0);
+
+  while(!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)) {
+    consume(TOKEN_IDENTIFIER, "Expect field name for object.");
+    uint8_t name = identifierConstant(&parser.previous);
+
+    consume(TOKEN_COLON, "Expect ':' after field name.");
+    expression();
+    emitBytes(OP_SET_PROPERTY_SHADOWED, name);
+
+    if(!match(TOKEN_COMMA) && !check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)) {
+      errorAtCurrent("Expected ',' or '}' in object literal.");
+      break;
+    }
+  }
+
+  consume(TOKEN_RIGHT_BRACE, "Expect '}' to close object literal.");
+}
+
 static void literal(bool canAssign) {
   switch (parser.previous.type) {
     case TOKEN_FALSE: emitByte(OP_FALSE); break;
@@ -568,7 +597,7 @@ ParseRule rules[] = {
   [TOKEN_LEFT_BRACE]    = {NULL,     NULL,   PREC_NONE}, 
   [TOKEN_RIGHT_BRACE]   = {NULL,     NULL,   PREC_NONE},
   [TOKEN_COMMA]         = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_DOT]           = {NULL,     dot,    PREC_CALL},
+  [TOKEN_DOT]           = {dotObj,   dot,    PREC_CALL},
   [TOKEN_MINUS]         = {unary,    binary, PREC_TERM},
   [TOKEN_PLUS]          = {NULL,     binary, PREC_TERM},
   [TOKEN_SEMICOLON]     = {NULL,     NULL,   PREC_NONE},

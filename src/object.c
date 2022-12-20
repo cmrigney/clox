@@ -157,6 +157,20 @@ static void printFunction(ObjFunction* function) {
   printf("<fn %s>", function->name->chars);
 }
 
+void printObjectInstance(ObjInstance *instance) {
+  printf(".{ ");
+  Entry *entry = tableIterate(&instance->fields, NULL);
+  while(entry != NULL) {
+    printObject(OBJ_VAL(entry->key));
+    printf(": ");
+    printValue(entry->value);
+    printf(", ");
+
+    entry = tableIterate(&instance->fields, entry);
+  }
+  printf("}");
+}
+
 void printObject(Value value) {
   switch (OBJ_TYPE(value)) {
     case OBJ_BOUND_METHOD:
@@ -171,10 +185,18 @@ void printObject(Value value) {
     case OBJ_FUNCTION:
       printFunction(AS_FUNCTION(value));
       break;
-    case OBJ_INSTANCE:
-      printf("%s instance",
-             AS_INSTANCE(value)->klass->name->chars);
+    case OBJ_INSTANCE: {
+      int instanceLen = AS_INSTANCE(value)->klass->name->length;
+      int objLen = (int)strlen("Object");
+      if(instanceLen == objLen && strcmp(AS_INSTANCE(value)->klass->name->chars, "Object") == 0) {
+        printObjectInstance(AS_INSTANCE(value));
+      }
+      else {
+        printf("%s instance",
+              AS_INSTANCE(value)->klass->name->chars);
+      }
       break;
+    }
     case OBJ_NATIVE:
       printf("<native fn>");
       break;
