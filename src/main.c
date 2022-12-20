@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
-#ifdef EMCC
+#ifdef EMCC_JS
 #include <emscripten.h>
 #endif
 
@@ -28,7 +29,7 @@ static void repl() {
 static char* readFile(const char* path) {
   FILE* file = fopen(path, "rb");
   if (file == NULL) {
-    fprintf(stderr, "Could not open file \"%s\".\n", path);
+    fprintf(stderr, "Could not open file \"%s\": %d.\n", path, errno);
     exit(74);
   }
 
@@ -62,7 +63,7 @@ static void runFile(const char* path) {
 }
 
 int main(int argc, const char* argv[]) {
-  #ifdef EMCC
+  #ifdef EMCC_JS
     // EM_ASM is a macro to call in-line JavaScript code.
     EM_ASM(
       FS.mkdir('/app');
