@@ -47,5 +47,6 @@ InterpretResult interpret(const char* source);
 void push(Value value);
 Value pop();
 Value callLoxCode(const char* name, Value *receiver, int argCount, Value *args);
+void concatenate();
 
 #endif

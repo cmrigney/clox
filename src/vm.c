@@ -12,7 +12,6 @@
 #include "native/native.h"
 
 VM vm;
-static void concatenate();
 static bool call(ObjClosure* closure, int argCount);
 static bool callValue(Value callee, int argCount);
 
@@ -123,6 +122,8 @@ void initVM() {
   vm.initString = copyString("init", 4);
 
   defineNative("clock", clockNative, false);
+  defineNative("parse", parseJsonNative, false);
+  defineNative("stringify", stringifyJsonNative, false);
 
   defineNative("Array", array, false);
   defineBoundNativeMethod(OBJ_ARRAY, "count", array_count, false);
@@ -335,7 +336,7 @@ static bool isFalsey(Value value) {
   return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
 }
 
-static void concatenate() {
+void concatenate() {
   ObjString* b = AS_STRING(peek(0));
   ObjString* a = AS_STRING(peek(1));
 

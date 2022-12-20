@@ -38,7 +38,9 @@
     "__locale": "c",
     "__threading_support": "c",
     "string_view": "c",
-    "native.h": "c"
+    "native.h": "c",
+    "json.h": "c",
+    "string.h": "c"
   },
   "cmake.configureOnOpen": true
 }

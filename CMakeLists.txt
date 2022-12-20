@@ -7,7 +7,7 @@ enable_testing()
 FILE(GLOB MyCSources src/*.c src/native/*.c)
 add_executable(clox ${MyCSources})
 
-target_include_directories(clox PRIVATE src)
+target_include_directories(clox PRIVATE src vendor)
 
 target_compile_options(clox PRIVATE -Werror)
 
