@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef EMCC
+#include <emscripten.h>
+#endif
+
 #include "common.h"
 #include "chunk.h"
 #include "debug.h"
@@ -58,6 +62,14 @@ static void runFile(const char* path) {
 }
 
 int main(int argc, const char* argv[]) {
+  #ifdef EMCC
+    // EM_ASM is a macro to call in-line JavaScript code.
+    EM_ASM(
+      FS.mkdir('/app');
+      FS.mount(NODEFS, { root: '.' }, '/app');
+    );
+  #endif
+
   initVM();
 
   if (argc == 1) {
