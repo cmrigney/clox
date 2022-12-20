@@ -9,6 +9,8 @@ add_executable(clox ${MyCSources})
 
 target_include_directories(clox PRIVATE src)
 
+target_compile_options(clox PRIVATE -Werror)
+
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
