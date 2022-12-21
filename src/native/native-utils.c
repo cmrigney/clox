@@ -169,3 +169,17 @@ Value stringifyJsonNative(Value *receiver, int argCount, Value *args) {
   }
   return OBJ_VAL(stringifyRecurse(args[0]));
 }
+
+Value scanToEOF(Value *receiver, int argCount, Value *args) {
+  char line[1024];
+
+  push(OBJ_VAL(copyString("", 0)));
+  for(;;) {
+    if(fgets(line, sizeof(line), stdin) == NULL) {
+      break;
+    }
+    push(OBJ_VAL(copyString(line, strlen(line))));
+    concatenate();
+  }
+  return pop();
+}

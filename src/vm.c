@@ -124,6 +124,7 @@ void initVM() {
   defineNative("clock", clockNative, false);
   defineNative("parse", parseJsonNative, false);
   defineNative("stringify", stringifyJsonNative, false);
+  defineNative("scanToEOF", scanToEOF, false);
 
   defineNative("Array", array, false);
   defineBoundNativeMethod(OBJ_ARRAY, "count", array_count, false);
