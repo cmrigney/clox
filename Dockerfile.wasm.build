@@ -20,6 +20,6 @@ ENV WASM_STANDALONE=true
 COPY . /clox
 
 WORKDIR /clox/wasm-build
-RUN cmake -DCMAKE_BUILD_TYPE=Release .. && make
+RUN cmake -DCMAKE_BUILD_TYPE=Release .. && make -j`nproc`
 
 CMD ["cat", "/clox/wasm-build/clox.wasm"]
