@@ -12,3 +12,4 @@ build
 wasm-build
 tmp
 *.wasm
+autogen

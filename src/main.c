@@ -12,6 +12,11 @@
 #include "debug.h"
 #include "vm.h"
 
+#include "stdlib_lox.h"
+#ifdef BUNDLE
+#include "bundle_lox.h"
+#endif
+
 static void repl() {
   char line[1024];
   for (;;) {
@@ -53,6 +58,17 @@ static char* readFile(const char* path) {
   return buffer;
 }
 
+static void runBytes(unsigned char *bytes, unsigned int length) {
+  char* source = (char*)malloc(length + 1);
+  memcpy(source, bytes, length);
+  source[length] = '\0';
+  InterpretResult result = interpret(source);
+  free(source);
+
+  if (result == INTERPRET_COMPILE_ERROR) exit(65);
+  if (result == INTERPRET_RUNTIME_ERROR) exit(70);
+}
+
 static void runFile(const char* path) {
   char* source = readFile(path);
   InterpretResult result = interpret(source);
@@ -63,7 +79,7 @@ static void runFile(const char* path) {
 }
 
 static void setupStdLib() {
-  runFile("stdlib/lib.lox");
+  runBytes(stdlib_lib_lox, stdlib_lib_lox_len);
 }
 
 int main(int argc, const char* argv[]) {
@@ -77,6 +93,10 @@ int main(int argc, const char* argv[]) {
 
   initVM();
 
+  #ifdef BUNDLE
+  setupStdLib();
+  runBytes(exec_bundle, exec_bundle_len);
+  #else
   if (argc == 1) {
     setupStdLib();
     repl();
@@ -87,6 +107,7 @@ int main(int argc, const char* argv[]) {
     fprintf(stderr, "Usage: clox [path]\n");
     exit(64);
   }
+  #endif
 
   freeVM();
   return 0;

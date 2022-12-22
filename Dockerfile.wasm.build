@@ -1,4 +1,4 @@
-FROM ubuntu:22.04 as builder
+FROM ubuntu:22.04 as builder-env
 
 RUN apt-get update && apt-get install -y \
     coreutils \
@@ -15,7 +15,12 @@ ENV WASI_VERSION=14 WASI_VERSION_FULL=14.0 WASI_SDK_PATH=/usr/wasi-sdk/wasi-sdk-
 RUN wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
 RUN tar xvf wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
 
+FROM builder-env as wasm-build
+
+ARG bundle=false
+
 ENV WASM_STANDALONE=true
+ENV BUNDLE=${bundle}
 
 COPY . /clox
 

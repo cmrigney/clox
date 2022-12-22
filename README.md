@@ -12,6 +12,16 @@ Run it.
 make run examples/classes.lox
 ```
 
+## Bundling a Lox Script into the Build
+```
+make bundle=examples/classes.lox build
+```
+
+Or for Wasm
+```
+make bundle=examples/classes.lox build-wasm
+```
+
 # Running as WebAssembly
 
 ## Compile to Wasm with Clang/Wasi-SDK (Run with WasmEdge)
@@ -20,6 +30,7 @@ make run examples/classes.lox
 
 ```
 make build-wasm
+make wasm-opt # optionally aot compile the module
 ```
 
 ### Running the Wasm module

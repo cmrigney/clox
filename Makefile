@@ -10,17 +10,37 @@ ifneq (,$(findstring run,$(firstword $(MAKECMDGOALS))))
   $(eval $(RUN_ARGS):;@:)
 endif
 
+prepare-stdlib:
+	mkdir -p autogen && xxd -i stdlib/lib.lox > autogen/stdlib_lox.h
 
-build:
+prepare-bundle:
+ifdef bundle
+	mkdir -p autogen && xxd -i -n exec_bundle ${bundle} > autogen/bundle_lox.h
+else
+	rm -f autogen/bundle_lox.h
+endif
+
+build: prepare-stdlib prepare-bundle
+ifdef bundle
+	mkdir -p build && cd build && BUNDLE=true cmake .. && make -j4
+else
 	mkdir -p build && cd build && cmake .. && make -j4
+endif
 
-build-wasm:
+build-wasm: prepare-stdlib prepare-bundle
+ifdef bundle
+	docker buildx build --platform linux/amd64 --build-arg bundle=true -f Dockerfile.wasm.build -t clox-wasm-builder . && docker run --rm --platform linux/amd64 clox-wasm-builder > clox.wasm
+else
 	docker buildx build --platform linux/amd64 -f Dockerfile.wasm.build -t clox-wasm-builder . && docker run --rm --platform linux/amd64 clox-wasm-builder > clox.wasm
+endif
 
-run: build
+run:
 	./build/clox $(RUN_ARGS)
 
-run-wasm: build-wasm
+wasm-opt:
+	docker run -it --rm --platform linux/amd64 -v $(DIR):/app -w /app wasmedge/slim:0.11.2 wasmedgec /app/clox.wasm /app/clox_aot.wasm && rm -f clox.wasm && mv clox_aot.wasm clox.wasm
+
+run-wasm:
 	docker run -it --rm --platform linux/amd64 -v $(DIR):/app -w /app wasmedge/slim:0.11.2 wasmedge --dir .:. /app/clox.wasm $(RUN_ARGS)
 
 clean:
