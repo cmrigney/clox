@@ -27,6 +27,13 @@ else
 	mkdir -p build && cd build && cmake .. && make -j4
 endif
 
+build-release: prepare-stdlib prepare-bundle
+ifdef bundle
+	mkdir -p build && cd build && BUNDLE=true cmake -DCMAKE_BUILD_TYPE=Release .. && make -j4
+else
+	mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j4
+endif
+
 build-wasm: prepare-stdlib prepare-bundle
 ifdef bundle
 	docker buildx build --platform linux/amd64 --build-arg bundle=true -f Dockerfile.wasm.build -t clox-wasm-builder . && docker run --rm --platform linux/amd64 clox-wasm-builder > clox.wasm
