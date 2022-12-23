@@ -9,6 +9,8 @@ Value parseJsonNative(Value *receiver, int argCount, Value *args);
 Value stringifyJsonNative(Value *receiver, int argCount, Value *args);
 
 Value scanToEOF(Value *receiver, int argCount, Value *args);
+Value printNative(Value *receiver, int argCount, Value *args);
+Value printlnNative(Value *receiver, int argCount, Value *args);
 
 Value getInstanceFields(Value *receiver, int argCount, Value *args);
 Value getInstanceFieldValueByKey(Value *receiver, int argCount, Value *args);

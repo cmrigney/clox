@@ -125,6 +125,8 @@ void initVM() {
   defineNative("parse", parseJsonNative, false);
   defineNative("stringify", stringifyJsonNative, false);
   defineNative("scanToEOF", scanToEOF, false);
+  defineNative("log", printNative, false);
+  defineNative("logln", printlnNative, false);
   defineNative("getInstanceFields", getInstanceFields, false);
   defineNative("getInstanceFieldValueByKey", getInstanceFieldValueByKey, false);
 

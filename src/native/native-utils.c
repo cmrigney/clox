@@ -229,3 +229,17 @@ Value getInstanceFieldValueByKey(Value *receiver, int argCount, Value *args) {
     return NIL_VAL;
   }
 }
+
+Value printNative(Value *receiver, int argCount, Value *args) {
+  for(int i = 0; i < argCount; i++) {
+    printValue(args[i]);
+    printf(" ");
+  }
+  return NIL_VAL;
+}
+
+Value printlnNative(Value *receiver, int argCount, Value *args) {
+  printNative(receiver, argCount, args);
+  printf("\n");
+  return NIL_VAL;
+}

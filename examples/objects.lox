@@ -10,11 +10,13 @@ print testObject.aaa;
 
 print testObject;
 
-print "Keys:";
-print testObject.keys();
+logln("Keys:", testObject.keys());
 
-print "Get 'aaa' by key:";
-print testObject.get("aaa");
+logln("By key:");
+fun printKeyVal(key, idx) {
+  logln("  ", key, ": ", testObject.get(key));
+}
+testObject.keys().forEach(printKeyVal);
 
 var anotherTest = .{
   embedded: .{
