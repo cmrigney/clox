@@ -10,6 +10,12 @@ print testObject.aaa;
 
 print testObject;
 
+print "Keys:";
+print testObject.keys();
+
+print "Get 'aaa' by key:";
+print testObject.get("aaa");
+
 var anotherTest = .{
   embedded: .{
     abc: testObject,

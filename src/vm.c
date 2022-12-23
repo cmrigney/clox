@@ -125,6 +125,8 @@ void initVM() {
   defineNative("parse", parseJsonNative, false);
   defineNative("stringify", stringifyJsonNative, false);
   defineNative("scanToEOF", scanToEOF, false);
+  defineNative("getInstanceFields", getInstanceFields, false);
+  defineNative("getInstanceFieldValueByKey", getInstanceFieldValueByKey, false);
 
   defineNative("Array", array, false);
   defineBoundNativeMethod(OBJ_ARRAY, "count", array_count, false);
@@ -133,6 +135,7 @@ void initVM() {
   defineBoundNativeMethod(OBJ_ARRAY, "pop", array_pop, false);
   defineBoundNativeMethod(OBJ_ARRAY, "filter", array_filter, true);
   defineBoundNativeMethod(OBJ_ARRAY, "map", array_map, true);
+  defineBoundNativeMethod(OBJ_ARRAY, "forEach", array_foreach, true);
 }
 
 void freeVM() {

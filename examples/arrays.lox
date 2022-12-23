@@ -5,6 +5,13 @@ fun isGreaterThan5(val) {
 }
 
 print count;
+print "For each:";
+fun printVal(val, idx) {
+  print "Value at index:";
+  print idx;
+  print val;
+}
+count.forEach(printVal);
 print count.filter(isGreaterThan5);
 
 var bools = Array(true, true, true, false, false, false);

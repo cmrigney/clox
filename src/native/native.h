@@ -10,6 +10,9 @@ Value stringifyJsonNative(Value *receiver, int argCount, Value *args);
 
 Value scanToEOF(Value *receiver, int argCount, Value *args);
 
+Value getInstanceFields(Value *receiver, int argCount, Value *args);
+Value getInstanceFieldValueByKey(Value *receiver, int argCount, Value *args);
+
 // Array methods
 Value array(Value *receiver, int argCount, Value* args);
 Value array_count(Value *receiver, int argCount, Value *args);
@@ -18,5 +21,6 @@ Value array_pop(Value *receiver, int argCount, Value *args);
 Value array_get(Value *receiver, int argCount, Value *args);
 Value array_filter(Value *receiver, int argCount, Value *args);
 Value array_map(Value *receiver, int argCount, Value *args);
+Value array_foreach(Value *receiver, int argCount, Value *args);
 
 #endif

@@ -90,3 +90,8 @@ Value array_map(Value *receiver, int argCount, Value *args) {
   // TODO verify args
   return callLoxCode("_array_map", receiver, argCount, args);
 }
+
+Value array_foreach(Value *receiver, int argCount, Value *args) {
+  // TODO verify args
+  return callLoxCode("_array_foreach", receiver, argCount, args);
+}

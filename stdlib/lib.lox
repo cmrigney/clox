@@ -1,4 +1,11 @@
-class Object {}
+class Object {
+  keys() {
+    return getInstanceFields(this);
+  }
+  get(key) {
+    return getInstanceFieldValueByKey(this, key);
+  }
+}
 
 fun _array_filter(arr, callback) {
   var result = Array();
@@ -16,4 +23,10 @@ fun _array_map(arr, callback) {
     result.push(callback(arr.get(i)));
   }
   return result;
+}
+
+fun _array_foreach(arr, callback) {
+  for(var i = 0; i < arr.count(); i = i + 1) {
+    callback(arr.get(i), i);
+  }
 }
