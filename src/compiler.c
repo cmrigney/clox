@@ -591,6 +591,8 @@ static void unary(bool canAssign) {
   }
 }
 
+static void funAnonExpression(bool canAssign);
+
 ParseRule rules[] = {
   [TOKEN_LEFT_PAREN]    = {grouping, call,   PREC_CALL},
   [TOKEN_RIGHT_PAREN]   = {NULL,     NULL,   PREC_NONE},
@@ -619,7 +621,7 @@ ParseRule rules[] = {
   [TOKEN_ELSE]          = {NULL,     NULL,   PREC_NONE},
   [TOKEN_FALSE]         = {literal,  NULL,   PREC_NONE},
   [TOKEN_FOR]           = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_FUN]           = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_FUN]           = {funAnonExpression, NULL,   PREC_PRIMARY},
   [TOKEN_IF]            = {NULL,     NULL,   PREC_NONE},
   [TOKEN_NIL]           = {literal,  NULL,   PREC_NONE},
   [TOKEN_OR]            = {NULL,     or_,    PREC_OR},
@@ -766,6 +768,13 @@ static void funDeclaration() {
   markInitialized();
   function(TYPE_FUNCTION);
   defineVariable(global);
+}
+
+static void funAnonExpression(bool canAssign) {
+  if(check(TOKEN_IDENTIFIER)) {
+    errorAtCurrent("Anonymous function cannot have name.");
+  }
+  function(TYPE_FUNCTION);
 }
 
 static void varDeclaration() {
