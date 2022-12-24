@@ -122,6 +122,7 @@ void initVM() {
   vm.initString = copyString("init", 4);
 
   defineNative("clock", clockNative, false);
+  defineNative("sleep", sleepNative, false);
   defineNative("parse", parseJsonNative, false);
   defineNative("stringify", stringifyJsonNative, false);
   defineNative("scanToEOF", scanToEOF, false);

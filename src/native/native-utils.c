@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 #include <time.h>
 
 #include "common.h"
@@ -241,5 +242,19 @@ Value printNative(Value *receiver, int argCount, Value *args) {
 Value printlnNative(Value *receiver, int argCount, Value *args) {
   printNative(receiver, argCount, args);
   printf("\n");
+  return NIL_VAL;
+}
+
+Value sleepNative(Value *receiver, int argCount, Value *args) {
+  if(argCount != 1) {
+    // runtimeError("sleep() takes exactly 1 argument (%d given).", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_NUMBER(args[0])) {
+    // runtimeError("sleep() argument must be a number.");
+    return NIL_VAL;
+  }
+  double ms = AS_NUMBER(args[0]);
+  sleep(ms / (double)1000);
   return NIL_VAL;
 }
