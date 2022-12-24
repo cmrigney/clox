@@ -5,6 +5,7 @@
 
 Value clockNative(Value *receiver, int argCount, Value* args);
 Value sleepNative(Value *receiver, int argCount, Value *args);
+Value randNNative(Value *receiver, int argCount, Value *args);
 
 Value parseJsonNative(Value *receiver, int argCount, Value *args);
 Value stringifyJsonNative(Value *receiver, int argCount, Value *args);

@@ -1,0 +1,5 @@
+logln("Random Numbers:");
+logln("Max 5:", randN(5));
+logln("Max 50:", randN(50));
+logln("Max 500:", randN(500));
+logln("Max 5000:", randN(5000));

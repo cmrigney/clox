@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <time.h>
 
 #ifdef EMCC_JS
 #include <emscripten.h>
@@ -90,6 +91,8 @@ int main(int argc, const char* argv[]) {
       FS.mount(NODEFS, { root: '.' }, '/app');
     );
   #endif
+
+  srand((unsigned int)clock());
 
   initVM();
 

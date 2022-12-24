@@ -123,6 +123,7 @@ void initVM() {
 
   defineNative("clock", clockNative, false);
   defineNative("sleep", sleepNative, false);
+  defineNative("randN", randNNative, false);
   defineNative("parse", parseJsonNative, false);
   defineNative("stringify", stringifyJsonNative, false);
   defineNative("scanToEOF", scanToEOF, false);
