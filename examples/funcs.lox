@@ -1,0 +1,32 @@
+fun printHello() {
+  fun printWorld() {
+    log("World");
+  }
+  log("Hello");
+  printWorld();
+  return printWorld;
+}
+
+printHello()();
+logln();
+
+fun runFn(fn) {
+  fn();
+}
+
+runFn(printHello);
+logln();
+
+runFn(fun () {
+  logln("Anon function");
+});
+
+runFn(fun () {
+  fun aaa(item, idx) {
+    logln("Item ", item);
+  }
+  Array("first", "second", "third").forEach(aaa);
+  Array("4th", "5th", "6th").forEach(fun (item, idx) {
+    logln("Item ", item);
+  });
+});

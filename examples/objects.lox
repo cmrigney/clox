@@ -13,10 +13,9 @@ print testObject;
 logln("Keys:", testObject.keys());
 
 logln("By key:");
-fun printKeyVal(key, idx) {
+testObject.keys().forEach(fun (key, idx) {
   logln("  ", key, ": ", testObject.get(key));
-}
-testObject.keys().forEach(printKeyVal);
+});
 
 var anotherTest = .{
   embedded: .{
