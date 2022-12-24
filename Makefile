@@ -22,9 +22,9 @@ endif
 
 build: prepare-stdlib prepare-bundle
 ifdef bundle
-	mkdir -p build && cd build && BUNDLE=true cmake .. && make -j4
+	mkdir -p build && cd build && BUNDLE=true cmake -DCMAKE_BUILD_TYPE=Debug .. && make -j4
 else
-	mkdir -p build && cd build && cmake .. && make -j4
+	mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && make -j4
 endif
 
 build-release: prepare-stdlib prepare-bundle
