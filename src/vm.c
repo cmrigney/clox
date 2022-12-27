@@ -131,6 +131,7 @@ void initVM() {
   defineNative("logln", printlnNative, false);
   defineNative("getInstanceFields", getInstanceFields, false);
   defineNative("getInstanceFieldValueByKey", getInstanceFieldValueByKey, false);
+  defineNative("setInstanceFieldValueByKey", setInstanceFieldValueByKey, false);
 
   defineNative("Array", array, false);
   defineBoundNativeMethod(OBJ_ARRAY, "count", array_count, false);

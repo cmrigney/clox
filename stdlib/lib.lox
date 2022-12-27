@@ -5,6 +5,10 @@ class Object {
   get(key) {
     return getInstanceFieldValueByKey(this, key);
   }
+  set(key, value) {
+    setInstanceFieldValueByKey(this, key, value);
+    return this;
+  }
 }
 
 fun _array_filter(arr, callback) {

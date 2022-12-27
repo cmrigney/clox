@@ -231,6 +231,25 @@ Value getInstanceFieldValueByKey(Value *receiver, int argCount, Value *args) {
   }
 }
 
+Value setInstanceFieldValueByKey(Value *receiver, int argCount, Value *args) {
+  if(argCount != 3) {
+    // runtimeError("setInstanceFieldValueByKey() takes exactly 3 arguments (%d given).", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_INSTANCE(args[0])) {
+    // runtimeError("setInstanceFieldValueByKey() first argument must be an instance.");
+    return NIL_VAL;
+  }
+  if(!IS_STRING(args[1])) {
+    // runtimeError("setInstanceFieldValueByKey() second argument must be a string.");
+    return NIL_VAL;
+  }
+  ObjInstance *instance = AS_INSTANCE(args[0]);
+  ObjString *key = AS_STRING(args[1]);
+  tableSet(&instance->fields, key, args[2]);
+  return NIL_VAL;
+}
+
 Value printNative(Value *receiver, int argCount, Value *args) {
   for(int i = 0; i < argCount; i++) {
     printValue(args[i]);

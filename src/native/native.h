@@ -16,6 +16,7 @@ Value printlnNative(Value *receiver, int argCount, Value *args);
 
 Value getInstanceFields(Value *receiver, int argCount, Value *args);
 Value getInstanceFieldValueByKey(Value *receiver, int argCount, Value *args);
+Value setInstanceFieldValueByKey(Value *receiver, int argCount, Value *args);
 
 // Array methods
 Value array(Value *receiver, int argCount, Value* args);

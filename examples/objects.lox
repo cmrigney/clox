@@ -17,6 +17,9 @@ testObject.keys().forEach(fun (key, idx) {
   logln("  ", key, ": ", testObject.get(key));
 });
 
+testObject.set("abc", 456);
+logln("Set abc = 456", testObject);
+
 var anotherTest = .{
   embedded: .{
     abc: testObject,
