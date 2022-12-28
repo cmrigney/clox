@@ -1,0 +1,9 @@
+var fs = nativeImport("filesystem");
+
+printMethods(fs);
+
+logln("Write result:", fs.writeFileText("modules/filesystem/test.txt", "Hello, world!"));
+logln("Append result: ", fs.appendFileText("modules/filesystem/test.txt", " - Hello, again!"));
+
+logln("File text:", fs.readFileText("modules/filesystem/test.txt"));
+logln("Delete result:", fs.deleteFile("modules/filesystem/test.txt"));

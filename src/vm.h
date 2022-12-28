@@ -5,6 +5,7 @@
 #include "table.h"
 #include "value.h"
 
+#define MAX_NATIVE_MODULES 256
 #define FRAMES_MAX 64
 #define STACK_MAX (FRAMES_MAX * UINT8_COUNT)
 
@@ -31,6 +32,9 @@ typedef struct {
   int grayCount;
   int grayCapacity;
   Obj** grayStack;
+
+  void *nativeModules[MAX_NATIVE_MODULES];
+  int nativeModuleCount;
 } VM;
 
 typedef enum {
@@ -46,6 +50,7 @@ void freeVM();
 InterpretResult interpret(const char* source);
 void push(Value value);
 Value pop();
+Value peek(int distance);
 Value callLoxCode(const char* name, Value *receiver, int argCount, Value *args);
 void concatenate();
 

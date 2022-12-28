@@ -40,7 +40,8 @@
     "string_view": "c",
     "native.h": "c",
     "json.h": "c",
-    "string.h": "c"
+    "string.h": "c",
+    "object.h": "c"
   },
   "cmake.configureOnOpen": true
 }

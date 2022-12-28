@@ -10,6 +10,7 @@
 #include "memory.h"
 #include "vm.h"
 #include "native/native.h"
+#include "modules.h"
 
 VM vm;
 static bool call(ObjClosure* closure, int argCount);
@@ -115,6 +116,8 @@ void initVM() {
   vm.grayCapacity = 0;
   vm.grayStack = NULL;
 
+  vm.nativeModuleCount = 0;
+
   initTable(&vm.globals);
   initTable(&vm.strings);
 
@@ -129,9 +132,12 @@ void initVM() {
   defineNative("scanToEOF", scanToEOF, false);
   defineNative("log", printNative, false);
   defineNative("logln", printlnNative, false);
+  defineNative("printMethods", printMethods, false);
   defineNative("getInstanceFields", getInstanceFields, false);
   defineNative("getInstanceFieldValueByKey", getInstanceFieldValueByKey, false);
   defineNative("setInstanceFieldValueByKey", setInstanceFieldValueByKey, false);
+
+  defineNative("nativeImport", nativeImportNative, false);
 
   defineNative("Array", array, false);
   defineBoundNativeMethod(OBJ_ARRAY, "count", array_count, false);
@@ -148,6 +154,7 @@ void freeVM() {
   freeTable(&vm.strings);
   vm.initString = NULL;
   freeObjects();
+  freeNativeModules();
 }
 
 void push(Value value) {
@@ -160,7 +167,7 @@ Value pop() {
   return *vm.stackTop;
 }
 
-static Value peek(int distance) {
+Value peek(int distance) {
   return vm.stackTop[-1 - distance];
 }
 
@@ -240,7 +247,10 @@ static bool invokeFromClass(ObjClass* klass, ObjString* name,
     runtimeError("Undefined property '%s'.", name->chars);
     return false;
   }
-  return call(AS_CLOSURE(method), argCount);
+  if(IS_CLOSURE(method)) {
+    return call(AS_CLOSURE(method), argCount);
+  }
+  return callValue(method, argCount);
 }
 
 static bool invoke(ObjString* name, int argCount) {

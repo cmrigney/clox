@@ -13,3 +13,4 @@ wasm-build
 tmp
 *.wasm
 autogen
+*.so

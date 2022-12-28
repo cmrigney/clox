@@ -291,3 +291,28 @@ Value randNNative(Value *receiver, int argCount, Value *args) {
   int result = rand() % (int)max;
   return NUMBER_VAL((double)result);
 }
+
+Value printMethods(Value *receiver, int argCount, Value *args) {
+  if(argCount != 1) {
+    // runtimeError("printMethods() takes exactly 1 argument (%d given).", argCount);
+    return NIL_VAL;
+  }
+  ObjClass *klass;
+  if(IS_INSTANCE(args[0])) {
+    klass = AS_INSTANCE(args[0])->klass;
+  } else if(IS_CLASS(args[0])) {
+    klass = AS_CLASS(args[0]);
+  }
+  else {
+    // runtimeError("printMethods() argument must be an instance or class.");
+    return NIL_VAL;
+  }
+  printf("Methods for %.*s:\n", klass->name->length, klass->name->chars);
+  Entry *entry = tableIterate(&klass->methods, NULL);
+  while(entry != NULL) {
+    ObjString *key = entry->key;
+    printf("  %.*s(...)\n", key->length, key->chars);
+    entry = tableIterate(&klass->methods, entry);
+  }
+  return NIL_VAL;
+}
