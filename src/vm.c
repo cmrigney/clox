@@ -1,6 +1,8 @@
 #include <stdarg.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include <time.h>
 
 #include "common.h"
@@ -118,6 +120,16 @@ void initVM() {
 
   vm.nativeModuleCount = 0;
 
+  vm.scriptName[0] = '\0';
+  #ifdef WASM
+  vm.workingDirectory[0] = '/';
+  #else
+  if(getcwd(vm.workingDirectory, sizeof(vm.workingDirectory)) == NULL) {
+    fprintf(stderr, "Could not get working directory.");
+    exit(78);
+  }
+  #endif
+
   initTable(&vm.globals);
   initTable(&vm.strings);
 
@@ -137,7 +149,9 @@ void initVM() {
   defineNative("getInstanceFieldValueByKey", getInstanceFieldValueByKey, false);
   defineNative("setInstanceFieldValueByKey", setInstanceFieldValueByKey, false);
 
-  defineNative("nativeImport", nativeImportNative, false);
+  #ifndef WASM
+  defineNative("systemImport", systemImportNative, false);
+  #endif
 
   defineNative("Array", array, false);
   defineBoundNativeMethod(OBJ_ARRAY, "count", array_count, false);
@@ -154,7 +168,10 @@ void freeVM() {
   freeTable(&vm.strings);
   vm.initString = NULL;
   freeObjects();
+
+  #ifndef WASM
   freeNativeModules();
+  #endif
 }
 
 void push(Value value) {

@@ -1,9 +1,16 @@
-var fs = nativeImport("filesystem");
+var fs = systemImport("filesystem");
 
 printMethods(fs);
 
-logln("Write result:", fs.writeFileText("modules/filesystem/test.txt", "Hello, world!"));
-logln("Append result: ", fs.appendFileText("modules/filesystem/test.txt", " - Hello, again!"));
+logln("List directory:");
+logln(fs.listDirectory("."));
 
-logln("File text:", fs.readFileText("modules/filesystem/test.txt"));
-logln("Delete result:", fs.deleteFile("modules/filesystem/test.txt"));
+logln("Write result:", fs.writeFileText("test.txt", "Hello, world!"));
+logln("Append result:", fs.appendFileText("test.txt", " - Hello, again!"));
+
+logln("'test.txt' exists:", fs.fileExists("test.txt"));
+
+logln("File text:", fs.readFileText("test.txt"));
+logln("Delete result:", fs.deleteFile("test.txt"));
+
+logln("'test.txt' exists:", fs.fileExists("test.txt"));

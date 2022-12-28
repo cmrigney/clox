@@ -17,7 +17,7 @@ endif()
 
 if(DEFINED ENV{EMCC_JS}) 
   target_link_libraries(clox -lnodefs.js)
-  add_compile_definitions(EMCC_JS)
+  add_compile_definitions(EMCC_JS WASM)
 endif()
 
 if(DEFINED ENV{WASM_STANDALONE})
@@ -26,7 +26,7 @@ if(DEFINED ENV{WASM_STANDALONE})
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_WASI_EMULATED_PROCESS_CLOCKS")
   target_link_options(clox PRIVATE -lwasi-emulated-process-clocks)
   set_target_properties(clox PROPERTIES SUFFIX ".wasm")
-  add_compile_definitions(WASM_STANDALONE)
+  add_compile_definitions(WASM_STANDALONE WASM)
 endif()
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})

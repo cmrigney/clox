@@ -1,6 +1,8 @@
 #ifndef clox_vm_h
 #define clox_vm_h
 
+#include <limits.h>
+
 #include "object.h"
 #include "table.h"
 #include "value.h"
@@ -35,6 +37,9 @@ typedef struct {
 
   void *nativeModules[MAX_NATIVE_MODULES];
   int nativeModuleCount;
+
+  char workingDirectory[PATH_MAX];
+  char scriptName[PATH_MAX];
 } VM;
 
 typedef enum {

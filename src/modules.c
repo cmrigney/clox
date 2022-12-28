@@ -1,3 +1,5 @@
+#ifndef WASM
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <dlfcn.h>
@@ -12,13 +14,13 @@
 
 extern VM vm;
 
-Value nativeImportNative(Value *receiver, int argCount, Value *args) {
+Value systemImportNative(Value *receiver, int argCount, Value *args) {
   if(argCount != 1) {
-    // runtimeError("nativeImport() takes exactly 1 argument (%d given).", argCount);
+    // runtimeError("systemImport() takes exactly 1 argument (%d given).", argCount);
     return NIL_VAL;
   }
   if(!IS_STRING(args[0])) {
-    // runtimeError("nativeImport() argument must be a string.");
+    // runtimeError("systemImport() argument must be a string.");
     return NIL_VAL;
   }
   char *path = malloc(strlen(AS_CSTRING(args[0])) * 2 + 30);
@@ -27,14 +29,14 @@ Value nativeImportNative(Value *receiver, int argCount, Value *args) {
   free(path);
   if(module == NULL) {
     printf("Can't find module: %s\n", dlerror());
-    // runtimeError("nativeImport() failed to load module: %s", dlerror());
+    // runtimeError("systemImport() failed to load module: %s", dlerror());
     return NIL_VAL;
   }
   vm.nativeModules[vm.nativeModuleCount++] = module;
 
   // TODO dedupe imports
-  char moduleName[64];
-  sprintf(moduleName, "__Module%d", vm.nativeModuleCount - 1);
+  char moduleName[256];
+  sprintf(moduleName, "__Module%d_%s", vm.nativeModuleCount - 1, AS_CSTRING(args[0]));
   push(OBJ_VAL(copyString(moduleName, strlen(moduleName))));
   ObjClass *moduleClass = newClass(AS_STRING(peek(0)));
   push(OBJ_VAL(moduleClass));
@@ -44,7 +46,7 @@ Value nativeImportNative(Value *receiver, int argCount, Value *args) {
   RegisterModule registerFn = dlsym(module, "registerModule");
   if(registerFn == NULL) {
     printf("Can't find register fn\n");
-    // runtimeError("nativeImport() failed to load registerModule() function: %s", dlerror());
+    // runtimeError("systemImport() failed to load registerModule() function: %s", dlerror());
     pop();
     pop();
     pop();
@@ -56,7 +58,7 @@ Value nativeImportNative(Value *receiver, int argCount, Value *args) {
   pop();
   if(!success) {
     printf("Not successful\n");
-    // runtimeError("nativeImport() failed to register module.");
+    // runtimeError("systemImport() failed to register module.");
     return NIL_VAL;
   }
   return OBJ_VAL(moduleInstance);
@@ -82,3 +84,5 @@ void registerNativeMethod(const char *name, NativeFn function) {
   pop();
   pop();
 }
+
+#endif

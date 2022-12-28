@@ -72,9 +72,10 @@ static void runBytes(unsigned char *bytes, unsigned int length) {
 
 static void runFile(const char* path) {
   char* source = readFile(path);
+  strcpy(vm.scriptName, path);
+
   InterpretResult result = interpret(source);
   free(source); 
-
   if (result == INTERPRET_COMPILE_ERROR) exit(65);
   if (result == INTERPRET_RUNTIME_ERROR) exit(70);
 }
