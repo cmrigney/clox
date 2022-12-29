@@ -9,8 +9,6 @@
 #include "table.h"
 #include "vm.h"
 
-extern VM vm;
-
 Value clockNative(Value *receiver, int argCount, Value* args) {
   return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
 }

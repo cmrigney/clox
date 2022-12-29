@@ -141,6 +141,13 @@ void initVM() {
   defineBoundNativeMethod(OBJ_ARRAY, "filter", array_filter, true);
   defineBoundNativeMethod(OBJ_ARRAY, "map", array_map, true);
   defineBoundNativeMethod(OBJ_ARRAY, "forEach", array_foreach, true);
+
+  defineBoundNativeMethod(OBJ_STRING, "length", string_length, false);
+  defineBoundNativeMethod(OBJ_STRING, "get", string_get, false);
+  defineBoundNativeMethod(OBJ_STRING, "find", string_find, false);
+  defineBoundNativeMethod(OBJ_STRING, "substring", string_substring, false);
+  defineBoundNativeMethod(OBJ_STRING, "split", string_split, false);
+  defineBoundNativeMethod(OBJ_STRING, "replace", string_replace, true);
 }
 
 void freeVM() {
@@ -506,7 +513,7 @@ static InterpretResult run() {
       DISPATCH();
     }
     DO_OP_GET_PROPERTY: {
-      if(IS_ARRAY(peek(0))) {
+      if(IS_ARRAY(peek(0)) || IS_STRING(peek(0))) {
         Obj* obj = AS_OBJ(peek(0));
         ObjString* name = READ_STRING();
 

@@ -28,4 +28,12 @@ Value array_filter(Value *receiver, int argCount, Value *args);
 Value array_map(Value *receiver, int argCount, Value *args);
 Value array_foreach(Value *receiver, int argCount, Value *args);
 
+// String methods
+Value string_length(Value *receiver, int argCount, Value* args);
+Value string_get(Value *receiver, int argCount, Value* args);
+Value string_find(Value *receiver, int argCount, Value* args);
+Value string_substring(Value *receiver, int argCount, Value* args);
+Value string_split(Value *receiver, int argCount, Value* args);
+Value string_replace(Value *receiver, int argCount, Value* args);
+
 #endif

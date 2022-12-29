@@ -1,0 +1,9 @@
+var string = "Hello, world!";
+
+logln("string =", string);
+logln("string.length() =", string.length());
+logln("string.get(2) =", string.get(2));
+logln("string.find('world') =", string.find("world"));
+logln("string.substring(3, 2) =", string.substring(3, 2));
+logln("string.split(', ') =", string.split(", "));
+logln("string.replace('world', 'universe') =", string.replace("world", "universe"));

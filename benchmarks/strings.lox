@@ -1,0 +1,14 @@
+var sample = "abc:123:xyz:456:abc:789:xyz:012:aaa:bbb:ccc:ddd:eee:fff:ggg:hhh:iii";
+
+var iterations = 100000;
+var totalLen = sample.length();
+
+var output = "";
+
+var start = clock();
+for(var i = 0; i < iterations; i = i + 1) {
+  output = sample.replace(":", "-");
+}
+var diff = clock() - start;
+logln("sample.replace(...): ", diff, "MS");
+logln(output);
