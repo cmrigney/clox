@@ -26,7 +26,7 @@ static char *getAbsolutePath(const char *path, int length) {
   return newPath;
 }
 
-Value readFileText(Value *receiver, int argCount, Value *args) {
+static Value readFileText(Value *receiver, int argCount, Value *args) {
   if(argCount != 1) {
     // runtimeError("readFile() takes exactly 1 argument (%d given)", argCount);
     return NIL_VAL;
@@ -64,7 +64,7 @@ Value readFileText(Value *receiver, int argCount, Value *args) {
   return OBJ_VAL(takeString(buffer, size));
 }
 
-Value writeFileText(Value *receiver, int argCount, Value *args) {
+static Value writeFileText(Value *receiver, int argCount, Value *args) {
   if(argCount != 2) {
     // runtimeError("writeFile() takes exactly 2 arguments (%d given)", argCount);
     return NIL_VAL;
@@ -94,7 +94,7 @@ Value writeFileText(Value *receiver, int argCount, Value *args) {
   return TRUE_VAL;
 }
 
-Value appendFileText(Value *receiver, int argCount, Value *args) {
+static Value appendFileText(Value *receiver, int argCount, Value *args) {
   if(argCount != 2) {
     // runtimeError("appendFile() takes exactly 2 arguments (%d given)", argCount);
     return NIL_VAL;
@@ -124,7 +124,7 @@ Value appendFileText(Value *receiver, int argCount, Value *args) {
   return TRUE_VAL;
 }
 
-Value deleteFile(Value *receiver, int argCount, Value *args) {
+static Value deleteFile(Value *receiver, int argCount, Value *args) {
   if(argCount != 1) {
     // runtimeError("deleteFile() takes exactly 1 argument (%d given)", argCount);
     return NIL_VAL;
@@ -154,7 +154,7 @@ const char *getFileDescription(uint8_t type) {
   }
 }
 
-Value listDirectory(Value *receiver, int argCount, Value *args) {
+static Value listDirectory(Value *receiver, int argCount, Value *args) {
   if(argCount != 1) {
     // runtimeError("listDirectory() takes exactly 1 argument (%d given)", argCount);
     return NIL_VAL;
@@ -210,7 +210,7 @@ Value listDirectory(Value *receiver, int argCount, Value *args) {
   return OBJ_VAL(list);
 }
 
-Value fileExists(Value *receiver, int argCount, Value *args) {
+static Value fileExists(Value *receiver, int argCount, Value *args) {
   if(argCount != 1) {
     // runtimeError("fileExists() takes exactly 1 argument (%d given)", argCount);
     return NIL_VAL;
@@ -226,7 +226,7 @@ Value fileExists(Value *receiver, int argCount, Value *args) {
   return BOOL_VAL(result == 0);
 }
 
-bool registerModule() {
+bool registerModule_filesystem() {
   if(vm.scriptName[0] != '\0') {
     char *scriptName = strdup(vm.scriptName);
     strcpy(scriptDirectory, dirname(scriptName));

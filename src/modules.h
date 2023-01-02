@@ -5,8 +5,6 @@
 #include "object.h"
 #include "vm.h"
 
-#ifndef WASM
-
 typedef bool (*RegisterModule)();
 
 Value systemImportNative(Value *receiver, int argCount, Value *args);
@@ -17,6 +15,9 @@ void freeNativeModules();
 
 void registerNativeMethod(const char *name, NativeFn function);
 
+// Statically linked modules
+#ifdef FILESYSTEM_MODULE
+#include "filesystem/filesystem.h"
 #endif
 
 #endif

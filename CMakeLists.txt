@@ -7,9 +7,15 @@ enable_testing()
 FILE(GLOB MyCSources src/*.c src/native/*.c)
 add_executable(clox ${MyCSources})
 
-target_include_directories(clox PRIVATE src vendor autogen)
+target_include_directories(clox PRIVATE src vendor autogen modules)
 
 target_compile_options(clox PRIVATE -Werror)
+
+if("$ENV{MODULES}" MATCHES "filesystem")
+  find_library(FILESYSTEM_MODULE NAMES libcloxfilesystem.a HINTS "modules/filesystem")
+  target_link_libraries(clox ${FILESYSTEM_MODULE})
+  add_compile_definitions(FILESYSTEM_MODULE)
+endif()
 
 if("$ENV{BUNDLE}" STREQUAL "true")
   add_compile_definitions(BUNDLE)

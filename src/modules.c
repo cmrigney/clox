@@ -1,9 +1,10 @@
-#ifndef WASM
-
 #include <stdlib.h>
 #include <stdio.h>
-#include <dlfcn.h>
 #include <string.h>
+
+#ifndef WASM
+#include <dlfcn.h>
+#endif
 
 #include "common.h"
 #include "object.h"
@@ -12,7 +13,54 @@
 #include "vm.h"
 #include "modules.h"
 
-extern VM vm;
+typedef struct {
+  const char *name;
+  RegisterModule registerFn;
+} LinkedModule;
+
+static LinkedModule linkedModules[] = {
+  #ifdef FILESYSTEM_MODULE
+  {"filesystem", registerModule_filesystem},
+  #endif
+  {NULL, NULL}
+};
+
+RegisterModule getStaticRegisterFunction(const char *name) {
+  for(int i = 0; linkedModules[i].name != NULL; i++) {
+    if(strcmp(linkedModules[i].name, name) == 0) {
+      return linkedModules[i].registerFn;
+    }
+  }
+  return NULL;
+}
+
+#ifndef WASM
+
+RegisterModule getDynamicallyLoadedRegisterFunction(const char *name) {
+  char *path = malloc(strlen(name) * 2 + 30);
+  sprintf(path, "modules/%s/libclox%s.so", name, name);
+  void *module = dlopen(path, RTLD_NOW);
+  free(path);
+  if(module == NULL) {
+    printf("Can't find module: %s\n", dlerror());
+    // runtimeError("systemImport() failed to load module: %s", dlerror());
+    return NULL;
+  }
+  vm.nativeModules[vm.nativeModuleCount++] = module;
+
+  // TODO dedupe imports
+  char buffer[256];
+  sprintf(buffer, "registerModule_%s", name);
+  RegisterModule registerFn = dlsym(module, buffer);
+  if(registerFn == NULL) {
+    // runtimeError("systemImport() failed to load registerModule() function: %s", dlerror());
+  }
+  return registerFn;
+}
+
+#endif
+
+static int moduleCount = 0;
 
 Value systemImportNative(Value *receiver, int argCount, Value *args) {
   if(argCount != 1) {
@@ -23,30 +71,29 @@ Value systemImportNative(Value *receiver, int argCount, Value *args) {
     // runtimeError("systemImport() argument must be a string.");
     return NIL_VAL;
   }
-  char *path = malloc(strlen(AS_CSTRING(args[0])) * 2 + 30);
-  sprintf(path, "modules/%s/libclox%s.so", AS_CSTRING(args[0]), AS_CSTRING(args[0]));
-  void *module = dlopen(path, RTLD_NOW);
-  free(path);
-  if(module == NULL) {
-    printf("Can't find module: %s\n", dlerror());
-    // runtimeError("systemImport() failed to load module: %s", dlerror());
-    return NIL_VAL;
-  }
-  vm.nativeModules[vm.nativeModuleCount++] = module;
 
   // TODO dedupe imports
-  char moduleName[256];
-  sprintf(moduleName, "__Module%d_%s", vm.nativeModuleCount - 1, AS_CSTRING(args[0]));
-  push(OBJ_VAL(copyString(moduleName, strlen(moduleName))));
+  // Make an instance, put it at the top of the stack for registerNativeMethod
+  char buffer[256];
+  sprintf(buffer, "__Module%d_%s", moduleCount++, AS_CSTRING(args[0]));
+  push(OBJ_VAL(copyString(buffer, strlen(buffer))));
   ObjClass *moduleClass = newClass(AS_STRING(peek(0)));
   push(OBJ_VAL(moduleClass));
-  // Add methods to moduleClass
   ObjInstance *moduleInstance = newInstance(moduleClass);
   push(OBJ_VAL(moduleInstance));
-  RegisterModule registerFn = dlsym(module, "registerModule");
+
+  RegisterModule registerFn = getStaticRegisterFunction(AS_CSTRING(args[0]));
+  #ifndef WASM
+  if(registerFn == NULL) {
+    registerFn = getDynamicallyLoadedRegisterFunction(AS_CSTRING(args[0]));
+    printf("Found dynamic module for %s\n", AS_CSTRING(args[0]));
+  } else {
+    printf("Found static module for %s\n", AS_CSTRING(args[0]));
+  }
+  #endif
+
   if(registerFn == NULL) {
     printf("Can't find register fn\n");
-    // runtimeError("systemImport() failed to load registerModule() function: %s", dlerror());
     pop();
     pop();
     pop();
@@ -65,9 +112,11 @@ Value systemImportNative(Value *receiver, int argCount, Value *args) {
 }
 
 void freeNativeModules() {
+  #ifndef WASM
   for (int i = 0; i < vm.nativeModuleCount; i++) {
     dlclose(vm.nativeModules[i]);
   }
+  #endif
   vm.nativeModuleCount = 0;
 }
 
@@ -84,5 +133,3 @@ void registerNativeMethod(const char *name, NativeFn function) {
   pop();
   pop();
 }
-
-#endif

@@ -149,9 +149,7 @@ void initVM() {
   defineNative("getInstanceFieldValueByKey", getInstanceFieldValueByKey, false);
   defineNative("setInstanceFieldValueByKey", setInstanceFieldValueByKey, false);
 
-  #ifndef WASM
   defineNative("systemImport", systemImportNative, false);
-  #endif
 
   defineNative("Array", array, false);
   defineBoundNativeMethod(OBJ_ARRAY, "count", array_count, false);
@@ -169,9 +167,7 @@ void freeVM() {
   vm.initString = NULL;
   freeObjects();
 
-  #ifndef WASM
   freeNativeModules();
-  #endif
 }
 
 void push(Value value) {

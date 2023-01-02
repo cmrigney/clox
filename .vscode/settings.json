@@ -41,7 +41,8 @@
     "native.h": "c",
     "json.h": "c",
     "string.h": "c",
-    "object.h": "c"
+    "object.h": "c",
+    "filesystem.h": "c"
   },
   "cmake.configureOnOpen": true
 }
