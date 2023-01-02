@@ -8,7 +8,7 @@
 #include <dirent.h>
 #include "../clox.h"
 
-static scriptDirectory[PATH_MAX];
+static char scriptDirectory[PATH_MAX];
 
 static char *getAbsolutePath(const char *path, int length) {
   char basePath[PATH_MAX];
@@ -19,7 +19,7 @@ static char *getAbsolutePath(const char *path, int length) {
     return strdup(basePath);
   }
 
-  const *newPath = malloc(length + PATH_MAX + 1);
+  char *newPath = malloc(length + PATH_MAX + 1);
   strcpy(newPath, scriptDirectory);
   strcat(newPath, "/");
   strcat(newPath, basePath);
