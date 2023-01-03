@@ -17,6 +17,12 @@ if("$ENV{MODULES}" MATCHES "filesystem")
   add_compile_definitions(FILESYSTEM_MODULE)
 endif()
 
+if("$ENV{MODULES}" MATCHES "os")
+  find_library(OS_MODULE NAMES libcloxos.a HINTS "modules/os")
+  target_link_libraries(clox ${OS_MODULE})
+  add_compile_definitions(OS_MODULE)
+endif()
+
 if("$ENV{BUNDLE}" STREQUAL "true")
   add_compile_definitions(BUNDLE)
 endif()

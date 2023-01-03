@@ -42,7 +42,8 @@
     "json.h": "c",
     "string.h": "c",
     "object.h": "c",
-    "filesystem.h": "c"
+    "filesystem.h": "c",
+    "stdlib.h": "c"
   },
   "cmake.configureOnOpen": true
 }

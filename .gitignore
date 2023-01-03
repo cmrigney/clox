@@ -17,3 +17,4 @@ autogen
 *.a
 *.o
 *.dll
+.DS_Store

@@ -41,6 +41,10 @@ else
 	docker buildx build --platform linux/amd64 -f Dockerfile.wasm.build -t clox-wasm-builder . && docker run --rm --platform linux/amd64 clox-wasm-builder > clox.wasm
 endif
 
+build-modules:
+	cd modules/filesystem && make build
+	cd modules/os && make build
+
 run:
 	./build/clox $(RUN_ARGS)
 
@@ -52,3 +56,4 @@ run-wasm:
 
 clean:
 	rm -rf build
+	rm -f clox.wasm
