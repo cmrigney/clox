@@ -146,7 +146,7 @@ ObjString *stringifyRecurse(Value value) {
       push(OBJ_VAL(copyString(", ", 2)));
       commas++;
     }
-    if(commas > 1) {
+    if(commas > 0) {
       pop(); // pop off last comma
       for(int i = 0; i < commas - 1; i++) {
         // concat all the commas we added
