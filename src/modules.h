@@ -19,5 +19,8 @@ void registerNativeMethod(const char *name, NativeFn function);
 #ifdef FILESYSTEM_MODULE
 #include "filesystem/filesystem.h"
 #endif
+#ifdef OS_MODULE
+#include "os/os.h"
+#endif
 
 #endif

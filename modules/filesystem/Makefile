@@ -8,3 +8,5 @@ build-shared: build-obj
 
 build-static: build-obj
 	ar rcs libcloxfilesystem.a libcloxfilesystem.o
+
+build: build-shared build-static

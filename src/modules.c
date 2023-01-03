@@ -22,6 +22,9 @@ static LinkedModule linkedModules[] = {
   #ifdef FILESYSTEM_MODULE
   {"filesystem", registerModule_filesystem},
   #endif
+  #ifdef OS_MODULE
+  {"os", registerModule_os},
+  #endif
   {NULL, NULL}
 };
 

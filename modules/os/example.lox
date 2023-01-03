@@ -1,3 +1,5 @@
+var os = systemImport("os");
+
 print "Sleeping for 2 seconds";
-sleep(2000);
+os.sleep(2000);
 print "Done sleeping";
