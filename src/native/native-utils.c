@@ -289,3 +289,21 @@ Value randNNative(Value *receiver, int argCount, Value *args) {
   int result = rand() % (int)max;
   return NUMBER_VAL((double)result);
 }
+
+Value getEnvVarNative(Value *receiver, int argCount, Value *args) {
+  if(argCount != 1) {
+    // runtimeError("getEnvVar() takes exactly 1 argument (%d given).", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_STRING(args[0])) {
+    // runtimeError("getEnvVar() first argument must be a string.");
+    return NIL_VAL;
+  }
+  ObjString *key = AS_STRING(args[0]);
+  char *value = getenv(key->chars);
+  if(value == NULL) {
+    return NIL_VAL;
+  } else {
+    return OBJ_VAL(copyString(value, strlen(value)));
+  }
+}
