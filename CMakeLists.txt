@@ -1,4 +1,9 @@
 cmake_minimum_required(VERSION 3.19.2)
+
+if("$ENV{MODULES}" MATCHES "pico")
+  include(vendor/pico-sdk/pico_sdk_init.cmake)
+endif()
+
 project(clox VERSION 0.1.0)
 
 include(CTest)
@@ -21,6 +26,21 @@ if("$ENV{MODULES}" MATCHES "os")
   find_library(OS_MODULE NAMES libcloxos.a HINTS "modules/os")
   target_link_libraries(clox ${OS_MODULE})
   add_compile_definitions(OS_MODULE)
+endif()
+
+if("$ENV{MODULES}" MATCHES "pico")
+  # initialize the Raspberry Pi Pico SDK
+  pico_sdk_init()
+  # create map/bin/hex/uf2 file in addition to ELF
+  pico_add_extra_outputs(clox)
+
+  # enable usb output, disable uart output
+  pico_enable_stdio_usb(clox 0)
+  pico_enable_stdio_uart(clox 1)
+
+  add_subdirectory(modules/pico)
+  target_link_libraries(clox cloxpico)
+  add_compile_definitions(PICO_MODULE)
 endif()
 
 if("$ENV{BUNDLE}" STREQUAL "true")

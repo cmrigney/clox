@@ -1,3 +1,6 @@
 [submodule "vendor/json"]
 	path = vendor/json
 	url = git@github.com:sheredom/json.h.git
+[submodule "vendor/pico-sdk"]
+	path = vendor/pico-sdk
+	url = git@github.com:raspberrypi/pico-sdk.git

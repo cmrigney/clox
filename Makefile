@@ -1,4 +1,4 @@
-.PHONY: build run clean build-wasm run-wasm
+.PHONY: build run clean build-wasm run-wasm build-pico wasm-opt
 
 DIR := ${CURDIR}
 
@@ -33,6 +33,9 @@ ifdef bundle
 else
 	mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j4
 endif
+
+build-pico:
+	MODULES=pico make build-release
 
 build-wasm: prepare-stdlib prepare-bundle
 ifdef bundle

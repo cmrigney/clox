@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifndef WASM
+#if !(defined WASM) && !(defined PICO_MODULE)
 #include <dlfcn.h>
 #endif
 
@@ -25,6 +25,9 @@ static LinkedModule linkedModules[] = {
   #ifdef OS_MODULE
   {"os", registerModule_os},
   #endif
+  #ifdef PICO_MODULE
+  {"pico", registerModule_pico},
+  #endif
   {NULL, NULL}
 };
 
@@ -37,7 +40,7 @@ RegisterModule getStaticRegisterFunction(const char *name) {
   return NULL;
 }
 
-#ifndef WASM
+#if !(defined WASM) && !(defined PICO_MODULE)
 
 RegisterModule getDynamicallyLoadedRegisterFunction(const char *name) {
   char *path = malloc(strlen(name) * 2 + 30);
@@ -86,7 +89,7 @@ Value systemImportNative(Value *receiver, int argCount, Value *args) {
   push(OBJ_VAL(moduleInstance));
 
   RegisterModule registerFn = getStaticRegisterFunction(AS_CSTRING(args[0]));
-  #ifndef WASM
+  #if !(defined WASM) && !(defined PICO_MODULE)
   if(registerFn == NULL) {
     registerFn = getDynamicallyLoadedRegisterFunction(AS_CSTRING(args[0]));
     printf("Found dynamic module for %s\n", AS_CSTRING(args[0]));
@@ -115,7 +118,7 @@ Value systemImportNative(Value *receiver, int argCount, Value *args) {
 }
 
 void freeNativeModules() {
-  #ifndef WASM
+  #if !(defined WASM) && !(defined PICO_MODULE)
   for (int i = 0; i < vm.nativeModuleCount; i++) {
     dlclose(vm.nativeModules[i]);
   }

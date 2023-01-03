@@ -121,7 +121,7 @@ void initVM() {
   vm.nativeModuleCount = 0;
 
   vm.scriptName[0] = '\0';
-  #ifdef WASM
+  #if defined WASM || defined PICO_MODULE
   vm.workingDirectory[0] = '/';
   #else
   if(getcwd(vm.workingDirectory, sizeof(vm.workingDirectory)) == NULL) {

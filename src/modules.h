@@ -22,5 +22,8 @@ void registerNativeMethod(const char *name, NativeFn function);
 #ifdef OS_MODULE
 #include "os/os.h"
 #endif
+#ifdef PICO_MODULE
+#include "pico/pico.h"
+#endif
 
 #endif

@@ -1,0 +1,5 @@
+var pico = systemImport("pico");
+
+logln("Sleeping for 2 seconds...");
+pico.sleep(2000);
+logln("Done sleeping");
