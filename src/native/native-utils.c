@@ -206,6 +206,29 @@ Value getInstanceFields(Value *receiver, int argCount, Value *args) {
   return pop();
 }
 
+Value instanceHasFieldValueByKey(Value *receiver, int argCount, Value *args) {
+  if(argCount != 2) {
+    // runtimeError("getInstanceFieldValueByKey() takes exactly 2 arguments (%d given).", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_INSTANCE(args[0])) {
+    // runtimeError("getInstanceFieldValueByKey() first argument must be an instance.");
+    return NIL_VAL;
+  }
+  if(!IS_STRING(args[1])) {
+    // runtimeError("getInstanceFieldValueByKey() second argument must be a string.");
+    return NIL_VAL;
+  }
+  ObjInstance *instance = AS_INSTANCE(args[0]);
+  ObjString *key = AS_STRING(args[1]);
+  Value value;
+  if(tableGet(&instance->fields, key, &value)) {
+    return TRUE_VAL;
+  } else {
+    return FALSE_VAL;
+  }
+}
+
 Value getInstanceFieldValueByKey(Value *receiver, int argCount, Value *args) {
   if(argCount != 2) {
     // runtimeError("getInstanceFieldValueByKey() takes exactly 2 arguments (%d given).", argCount);

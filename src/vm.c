@@ -132,6 +132,7 @@ void initVM() {
   defineNative("perror", perrorNative, false);
   defineNative("perrorln", perrorlnNative, false);
   defineNative("getInstanceFields", getInstanceFields, false);
+  defineNative("instanceHasFieldValueByKey", instanceHasFieldValueByKey, false);
   defineNative("getInstanceFieldValueByKey", getInstanceFieldValueByKey, false);
   defineNative("setInstanceFieldValueByKey", setInstanceFieldValueByKey, false);
   defineNative("getEnvVar", getEnvVarNative, false);
