@@ -250,7 +250,7 @@ Value setInstanceFieldValueByKey(Value *receiver, int argCount, Value *args) {
 
 Value printNative(Value *receiver, int argCount, Value *args) {
   for(int i = 0; i < argCount; i++) {
-    printValue(args[i]);
+    printValue(stdout, args[i]);
     printf(" ");
   }
   return NIL_VAL;

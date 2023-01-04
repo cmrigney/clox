@@ -149,75 +149,75 @@ ObjUpvalue* newUpvalue(Value* slot) {
   return upvalue;
 }
 
-static void printFunction(ObjFunction* function) {
+static void printFunction(FILE *stream, ObjFunction* function) {
   if (function->name == NULL) {
-    printf("<script>");
+    fprintf(stream, "<script>");
     return;
   }
-  printf("<fn %s>", function->name->chars);
+  fprintf(stream, "<fn %s>", function->name->chars);
 }
 
-void printObjectInstance(ObjInstance *instance) {
+void printObjectInstance(FILE *stream, ObjInstance *instance) {
   printf(".{ ");
   Entry *entry = tableIterate(&instance->fields, NULL);
   while(entry != NULL) {
-    printObject(OBJ_VAL(entry->key));
-    printf(": ");
-    printValue(entry->value);
-    printf(", ");
+    printObject(stream, OBJ_VAL(entry->key));
+    fprintf(stream, ": ");
+    printValue(stream, entry->value);
+    fprintf(stream, ", ");
 
     entry = tableIterate(&instance->fields, entry);
   }
   printf("}");
 }
 
-void printObject(Value value) {
+void printObject(FILE *stream, Value value) {
   switch (OBJ_TYPE(value)) {
     case OBJ_BOUND_METHOD:
-      printFunction(AS_BOUND_METHOD(value)->method->function);
+      printFunction(stream, AS_BOUND_METHOD(value)->method->function);
       break;
     case OBJ_CLASS:
-      printf("%s", AS_CLASS(value)->name->chars);
+      fprintf(stream, "%s", AS_CLASS(value)->name->chars);
       break;
     case OBJ_CLOSURE:
-      printFunction(AS_CLOSURE(value)->function);
+      printFunction(stream, AS_CLOSURE(value)->function);
       break;
     case OBJ_FUNCTION:
-      printFunction(AS_FUNCTION(value));
+      printFunction(stream, AS_FUNCTION(value));
       break;
     case OBJ_INSTANCE: {
       int instanceLen = AS_INSTANCE(value)->klass->name->length;
       int objLen = (int)strlen("Object");
       if(instanceLen == objLen && strcmp(AS_INSTANCE(value)->klass->name->chars, "Object") == 0) {
-        printObjectInstance(AS_INSTANCE(value));
+        printObjectInstance(stream, AS_INSTANCE(value));
       }
       else {
-        printf("%s instance",
+        fprintf(stream, "%s instance",
               AS_INSTANCE(value)->klass->name->chars);
       }
       break;
     }
     case OBJ_NATIVE:
-      printf("<native fn>");
+      fprintf(stream, "<native fn>");
       break;
     case OBJ_BOUND_NATIVE:
-      printf("<bound native fn>");
+      fprintf(stream, "<bound native fn>");
       break;
     case OBJ_STRING:
-      printf("%s", AS_CSTRING(value));
+      fprintf(stream, "%s", AS_CSTRING(value));
       break;
     case OBJ_UPVALUE:
-      printf("upvalue");
+      fprintf(stream, "upvalue");
       break;
     case OBJ_ARRAY:
-      printf("Array(");
+      fprintf(stream, "Array(");
       for(int i = 0; i < AS_ARRAY(value)->values.count; i++) {
-        printValue(AS_ARRAY(value)->values.values[i]);
+        printValue(stream, AS_ARRAY(value)->values.values[i]);
         if(i < AS_ARRAY(value)->values.count - 1) {
-          printf(", ");
+          fprintf(stream, ", ");
         }
       }
-      printf(")");
+      fprintf(stream, ")");
       break;
   }
 }

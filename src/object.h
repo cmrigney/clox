@@ -1,6 +1,8 @@
 #ifndef clox_object_h
 #define clox_object_h
 
+#include <stdio.h>
+
 #include "common.h"
 #include "chunk.h"
 #include "table.h"
@@ -125,7 +127,7 @@ ObjInstance* newInstance(ObjClass* klass);
 ObjClosure* newClosure(ObjFunction* function);
 ObjUpvalue* newUpvalue(Value* slot);
 ObjString* copyString(const char* chars, int length);
-void printObject(Value value);
+void printObject(FILE *stream, Value value);
 ObjFunction* newFunction();
 ObjNative* newNative(NativeFn function, bool callsLox);
 ObjBoundNative* newBoundNative(Value receiver, NativeFn function, bool callsLox);

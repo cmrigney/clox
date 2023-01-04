@@ -447,7 +447,7 @@ static InterpretResult run() {
       printf("          ");
       for (Value* slot = vm.stack; slot < vm.stackTop; slot++) {
         printf("[ ");
-        printValue(*slot);
+        printValue(stdout, *slot);
         printf(" ]");
       }
       printf("\n");
@@ -459,8 +459,6 @@ static InterpretResult run() {
 
     DO_OP_CONSTANT: {
       Value constant = READ_CONSTANT();
-      // printValue(constant);
-      // printf("\n");
       push(constant);
       DISPATCH();
     }
@@ -613,8 +611,8 @@ static InterpretResult run() {
       push(NUMBER_VAL(-AS_NUMBER(pop())));
       DISPATCH();
     DO_OP_PRINT: {
-      printValue(pop());
-      printf("\n");
+      printValue(stdout, pop());
+      fprintf(stdout, "\n");
       DISPATCH();
     }
     DO_OP_JUMP: {
