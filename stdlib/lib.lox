@@ -2,6 +2,9 @@ class Object {
   keys() {
     return getInstanceFields(this);
   }
+  has(key) {
+    return instanceHasFieldValueByKey(this, key);
+  }
   get(key) {
     return getInstanceFieldValueByKey(this, key);
   }

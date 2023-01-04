@@ -160,6 +160,7 @@ void initVM() {
   defineNative("logln", printlnNative, false);
   defineNative("printMethods", printMethods, false);
   defineNative("getInstanceFields", getInstanceFields, false);
+  defineNative("instanceHasFieldValueByKey", instanceHasFieldValueByKey, false);
   defineNative("getInstanceFieldValueByKey", getInstanceFieldValueByKey, false);
   defineNative("setInstanceFieldValueByKey", setInstanceFieldValueByKey, false);
   defineNative("getEnvVar", getEnvVarNative, false);
