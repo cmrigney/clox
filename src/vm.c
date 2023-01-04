@@ -129,6 +129,8 @@ void initVM() {
   defineNative("scanToEOF", scanToEOF, false);
   defineNative("log", printNative, false);
   defineNative("logln", printlnNative, false);
+  defineNative("perror", perrorNative, false);
+  defineNative("perrorln", perrorlnNative, false);
   defineNative("getInstanceFields", getInstanceFields, false);
   defineNative("getInstanceFieldValueByKey", getInstanceFieldValueByKey, false);
   defineNative("setInstanceFieldValueByKey", setInstanceFieldValueByKey, false);

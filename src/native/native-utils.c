@@ -262,6 +262,20 @@ Value printlnNative(Value *receiver, int argCount, Value *args) {
   return NIL_VAL;
 }
 
+Value perrorNative(Value *receiver, int argCount, Value *args) {
+  for(int i = 0; i < argCount; i++) {
+    printValue(stderr, args[i]);
+    fprintf(stderr, " ");
+  }
+  return NIL_VAL;
+}
+
+Value perrorlnNative(Value *receiver, int argCount, Value *args) {
+  perrorNative(receiver, argCount, args);
+  fprintf(stderr, "\n");
+  return NIL_VAL;
+}
+
 Value sleepNative(Value *receiver, int argCount, Value *args) {
   if(argCount != 1) {
     // runtimeError("sleep() takes exactly 1 argument (%d given).", argCount);

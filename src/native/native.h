@@ -13,6 +13,8 @@ Value stringifyJsonNative(Value *receiver, int argCount, Value *args);
 Value scanToEOF(Value *receiver, int argCount, Value *args);
 Value printNative(Value *receiver, int argCount, Value *args);
 Value printlnNative(Value *receiver, int argCount, Value *args);
+Value perrorNative(Value *receiver, int argCount, Value *args);
+Value perrorlnNative(Value *receiver, int argCount, Value *args);
 
 Value getEnvVarNative(Value *receiver, int argCount, Value *args);
 
