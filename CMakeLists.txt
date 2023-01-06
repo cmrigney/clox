@@ -35,8 +35,8 @@ if("$ENV{MODULES}" MATCHES "pico")
   pico_add_extra_outputs(clox)
 
   # enable usb output, disable uart output
-  pico_enable_stdio_usb(clox 0)
-  pico_enable_stdio_uart(clox 1)
+  pico_enable_stdio_usb(clox 1)
+  pico_enable_stdio_uart(clox 0)
 
   add_subdirectory(modules/pico)
   target_link_libraries(clox cloxpico)

@@ -4,5 +4,6 @@
 #include <stdbool.h>
 
 bool registerModule_pico();
+void pico_repl();
 
 #endif

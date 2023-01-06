@@ -18,6 +18,10 @@
 #include "bundle_lox.h"
 #endif
 
+#ifdef PICO_MODULE
+#include "pico/pico.h"
+#endif
+
 static void repl() {
   char line[1024];
   for (;;) {
@@ -100,6 +104,9 @@ int main(int argc, const char* argv[]) {
   #ifdef BUNDLE
   setupStdLib();
   runBytes(exec_bundle, exec_bundle_len);
+  #elif defined (PICO_MODULE)
+  setupStdLib();
+  pico_repl();
   #else
   if (argc == 1) {
     setupStdLib();
