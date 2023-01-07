@@ -56,6 +56,7 @@ typedef enum {
   TYPE_METHOD,
   TYPE_INITIALIZER,
   TYPE_SCRIPT,
+  TYPE_MODULE,
 } FunctionType;
 
 typedef struct Compiler {
@@ -166,6 +167,8 @@ static int emitJump(uint8_t instruction) {
 static void emitReturn() {
   if (current->type == TYPE_INITIALIZER) {
     emitBytes(OP_GET_LOCAL, 0); // get instance at 0
+  } else if(current->type == TYPE_MODULE) {
+    emitBytes(OP_GET_LOCAL, 1); // get module instance at 1
   } else {
     emitByte(OP_NIL);
   }
@@ -207,7 +210,7 @@ static void initCompiler(Compiler* compiler, FunctionType type) {
   compiler->scopeDepth = 0;
   compiler->function = newFunction();
   current = compiler;
-  if (type != TYPE_SCRIPT) {
+  if (type != TYPE_SCRIPT && type != TYPE_MODULE) {
     current->function->name = copyString(parser.previous.start,
                                          parser.previous.length);
   }
@@ -677,7 +680,7 @@ static void block() {
 static void function(FunctionType type) {
   Compiler compiler;
   initCompiler(&compiler, type);
-  beginScope(); 
+  beginScope();
 
   consume(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
   if (!check(TOKEN_RIGHT_PAREN)) {
@@ -871,7 +874,7 @@ static void printStatement() {
 }
 
 static void returnStatement() {
-  if (current->type == TYPE_SCRIPT) {
+  if (current->type == TYPE_SCRIPT || current->type == TYPE_MODULE) {
     error("Can't return from top-level code.");
   }
 
@@ -965,6 +968,31 @@ ObjFunction* compile(const char* source) {
   initScanner(source);
   Compiler compiler;
   initCompiler(&compiler, TYPE_SCRIPT);
+
+  parser.hadError = false;
+  parser.panicMode = false;
+
+  advance();
+
+  while (!match(TOKEN_EOF)) {
+    declaration();
+  }
+
+  ObjFunction* function = endCompiler();
+  return parser.hadError ? NULL : function;
+}
+
+ObjFunction* compileModule(const char* source) {
+  initScanner(source);
+  Compiler compiler;
+  initCompiler(&compiler, TYPE_MODULE);
+  beginScope();
+
+  Token moduleToken = syntheticToken("module");
+  moduleToken.type = TOKEN_IDENTIFIER;
+
+  addLocal(moduleToken);
+  markInitialized();
 
   parser.hadError = false;
   parser.panicMode = false;

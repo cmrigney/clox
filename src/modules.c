@@ -12,6 +12,7 @@
 #include "table.h"
 #include "vm.h"
 #include "modules.h"
+#include "compiler.h"
 
 typedef struct {
   const char *name;
@@ -67,6 +68,32 @@ RegisterModule getDynamicallyLoadedRegisterFunction(const char *name) {
 #endif
 
 static int moduleCount = 0;
+static const char *loxSource = NULL;
+
+static void freeLoxSource() {
+  if(loxSource != NULL) {
+    free((void*)loxSource);
+    loxSource = NULL;
+  }
+}
+
+static void compileAndCallLoxModule(const char *source, ObjInstance *instance) {
+  push(OBJ_VAL(instance));
+  ObjFunction *function = compileModule(source);
+  if(function == NULL) {
+    // runtimeError("compileAndCallLoxModule() failed to compile.");
+    pop();
+    return;
+  }
+  function->arity++; // for "module"
+  push(OBJ_VAL(function));
+  ObjClosure* closure = newClosure(function);
+  pop();
+  pop();
+  push(OBJ_VAL(closure));
+  push(OBJ_VAL(instance)); // "module" var
+  callModule(closure, 1);
+}
 
 Value systemImportNative(Value *receiver, int argCount, Value *args) {
   if(argCount != 1) {
@@ -114,7 +141,20 @@ Value systemImportNative(Value *receiver, int argCount, Value *args) {
     // runtimeError("systemImport() failed to register module.");
     return NIL_VAL;
   }
-  return OBJ_VAL(moduleInstance);
+
+  // Similar to callLoxCode(), we need to pop everything off for this native function first
+  for (int i = 0; i < argCount; i++) {
+    pop(); // pop the args off
+  }
+  pop(); // pop the existing native function off
+
+  if(loxSource != NULL) {
+    compileAndCallLoxModule(loxSource, moduleInstance);
+    freeLoxSource();
+  } else {
+    push(OBJ_VAL(moduleInstance)); // Same result as if we had called the Lox code
+  }
+  return NIL_VAL;
 }
 
 void freeNativeModules() {
@@ -139,3 +179,9 @@ void registerNativeMethod(const char *name, NativeFn function) {
   pop();
   pop();
 }
+
+void registerLoxCode(const char *source) {
+  freeLoxSource();
+  loxSource = strdup(source);
+}
+

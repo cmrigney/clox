@@ -148,7 +148,7 @@ void initVM() {
   defineNative("getInstanceFieldValueByKey", getInstanceFieldValueByKey, false);
   defineNative("setInstanceFieldValueByKey", setInstanceFieldValueByKey, false);
 
-  defineNative("systemImport", systemImportNative, false);
+  defineNative("systemImport", systemImportNative, true);
 
   defineNative("Array", array, false);
   defineBoundNativeMethod(OBJ_ARRAY, "count", array_count, false);
@@ -200,6 +200,10 @@ static bool call(ObjClosure* closure, int argCount) {
   frame->ip = closure->function->chunk.code;
   frame->slots = vm.stackTop - argCount - 1;
   return true;
+}
+
+bool callModule(ObjClosure *closure, int argCount) {
+  return call(closure, argCount);
 }
 
 static bool callValue(Value callee, int argCount) {

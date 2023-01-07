@@ -14,6 +14,7 @@ void freeNativeModules();
 // Used by modules
 
 void registerNativeMethod(const char *name, NativeFn function);
+void registerLoxCode(const char *source);
 
 // Statically linked modules
 #ifdef FILESYSTEM_MODULE
