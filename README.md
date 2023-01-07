@@ -61,3 +61,20 @@ docker run --rm -v /Users/codyrigney/Development/clox:/clox -e EMCC=true emscrip
 ```
 docker run --rm -it -v /Users/codyrigney/Development/clox:/usr/src/app -w /usr/src/app node node wasm-js-build/clox.js /app/examples/classes.lox
 ```
+
+## Compile for RPI Pico
+
+Build:
+```
+make build-pico
+```
+
+Copy the uf2 file:
+```
+rsync build/clox.uf2 /Volumes/RPI-RP2/
+```
+
+Connect to repl via minicom:
+```
+minicom -b 115200 -o -D /dev/tty.usbmodem21201
+```

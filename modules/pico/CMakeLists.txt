@@ -15,3 +15,12 @@ target_link_libraries(cloxpico pico_stdlib)
 # enable usb output, disable uart output
 pico_enable_stdio_usb(cloxpico 1)
 pico_enable_stdio_uart(cloxpico 0)
+
+add_custom_target(
+ genlib ALL
+ COMMAND mkdir -p ${CMAKE_CURRENT_SOURCE_DIR}/autogen && xxd -i -n pico_module_bundle ${CMAKE_CURRENT_SOURCE_DIR}/lib.lox > ${CMAKE_CURRENT_SOURCE_DIR}/autogen/pico_lib.h
+ BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/autogen/pico_lib.h
+ COMMENT "Generating Lox Pico Lib"
+)
+
+add_dependencies(cloxpico genlib)

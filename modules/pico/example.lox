@@ -1,7 +1,8 @@
 var pico = systemImport("pico");
 
 while (true) {
-  logln("Sleeping for 2 seconds...");
-  pico.sleep(2000);
-  logln("Done sleeping");
+  pico.LEDPin.on();
+  pico.sleep(250);
+  pico.LEDPin.off();
+  pico.sleep(250);
 }

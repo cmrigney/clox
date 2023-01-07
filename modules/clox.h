@@ -5,5 +5,6 @@
 #include "../src/vm.h"
 #include "../src/object.h"
 #include "../src/value.h"
+#include "../src/compiler.h"
 
 #endif

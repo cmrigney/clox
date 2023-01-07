@@ -43,7 +43,8 @@
     "string.h": "c",
     "object.h": "c",
     "filesystem.h": "c",
-    "stdlib.h": "c"
+    "stdlib.h": "c",
+    "pico_lib.h": "c"
   },
   "cmake.configureOnOpen": true
 }

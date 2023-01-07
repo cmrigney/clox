@@ -1,0 +1,27 @@
+class Pin {
+  init(pin) {
+    this.pin = pin;
+    module.__init_pin(pin);
+  }
+
+  output() {
+    module.__pin_output(this.pin);
+    return this;
+  }
+
+  on() {
+    module.__pin_on(this.pin);
+    return this;
+  }
+
+  off() {
+    module.__pin_off(this.pin);
+    return this;
+  }
+}
+
+module.Pin = Pin;
+var ledPin = module.__get_led_pin();
+if(ledPin != nil) {
+  module.LEDPin = Pin(ledPin).output();
+}
