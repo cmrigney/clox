@@ -28,4 +28,13 @@ Value array_filter(Value *receiver, int argCount, Value *args);
 Value array_map(Value *receiver, int argCount, Value *args);
 Value array_foreach(Value *receiver, int argCount, Value *args);
 
+// Buffer methods
+Value bufferConstructor(Value *receiver, int argCount, Value* args);
+Value buffer_length(Value *receiver, int argCount, Value* args);
+Value buffer_get(Value *receiver, int argCount, Value* args);
+Value buffer_set(Value *receiver, int argCount, Value* args);
+Value buffer_as_array(Value *receiver, int argCount, Value* args);
+Value buffer_as_string(Value *receiver, int argCount, Value* args);
+Value buffer_append(Value *receiver, int argCount, Value* args);
+
 #endif

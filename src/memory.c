@@ -118,6 +118,7 @@ static void blackenObject(Obj* object) {
       markValue(bound->receiver);
       break;
     }
+    case OBJ_BUFFER:
     case OBJ_NATIVE:
     case OBJ_STRING:
       break;
@@ -181,6 +182,12 @@ static void freeObject(Obj* object) {
     }
     case OBJ_UPVALUE: {
       FREE(ObjUpvalue, object);
+      break;
+    }
+    case OBJ_BUFFER: {
+      ObjBuffer* buffer = (ObjBuffer*)object;
+      FREE_ARRAY(uint8_t, buffer->bytes, buffer->size);
+      FREE(ObjBuffer, object);
       break;
     }
   }

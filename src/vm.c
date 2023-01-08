@@ -158,6 +158,14 @@ void initVM() {
   defineBoundNativeMethod(OBJ_ARRAY, "filter", array_filter, true);
   defineBoundNativeMethod(OBJ_ARRAY, "map", array_map, true);
   defineBoundNativeMethod(OBJ_ARRAY, "forEach", array_foreach, true);
+
+  defineNative("Buffer", bufferConstructor, false);
+  defineBoundNativeMethod(OBJ_BUFFER, "length", buffer_length, false);
+  defineBoundNativeMethod(OBJ_BUFFER, "get", buffer_get, false);
+  defineBoundNativeMethod(OBJ_BUFFER, "set", buffer_set, false);
+  defineBoundNativeMethod(OBJ_BUFFER, "asArray", buffer_as_array, false);
+  defineBoundNativeMethod(OBJ_BUFFER, "asString", buffer_as_string, false);
+  defineBoundNativeMethod(OBJ_BUFFER, "append", buffer_append, false);
 }
 
 void freeVM() {

@@ -1,0 +1,25 @@
+var b = Buffer();
+logln("Empty buffer:", b, b.length(), b.asArray());
+
+b = Buffer(2);
+logln("Buffer of size 2:", b, b.length(), b.asArray());
+
+b.set(0, 250);
+b.set(1, 244);
+logln("Buffer with values:", b, b.length(), b.asArray());
+
+logln("Get values:", b.get(0), b.get(1));
+
+b = Buffer(Array(1, 2, 3, 4, 5));
+logln("Buffer from array:", b, b.length(), b.asArray());
+
+b = Buffer("Hello");
+logln("Buffer from string:", b, b.length(), b.asArray());
+logln("Buffer back to string:", b.asString());
+
+b = Buffer(b);
+logln("Buffer from buffer:", b, b.length(), b.asArray());
+
+b.append(Buffer(" World"));
+logln("Buffer after append:", b, b.length(), b.asArray());
+logln("As string:", b.asString());

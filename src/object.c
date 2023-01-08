@@ -141,6 +141,15 @@ ObjString* copyString(const char* chars, int length) {
   return allocateString(heapChars, length, hash);
 }
 
+ObjBuffer* newBuffer(int size) {
+  ObjBuffer* buffer = ALLOCATE_OBJ(ObjBuffer, OBJ_BUFFER);
+  buffer->size = size;
+  push(OBJ_VAL(buffer)); // for garbage collection safety
+  buffer->bytes = ALLOCATE(uint8_t, size);
+  pop();
+  return buffer;
+}
+
 ObjUpvalue* newUpvalue(Value* slot) {
   ObjUpvalue* upvalue = ALLOCATE_OBJ(ObjUpvalue, OBJ_UPVALUE);
   upvalue->closed = NIL_VAL;
@@ -205,6 +214,9 @@ void printObject(Value value) {
       break;
     case OBJ_STRING:
       printf("%s", AS_CSTRING(value));
+      break;
+    case OBJ_BUFFER:
+      printf("<buffer %d>", AS_BUFFER(value)->size);
       break;
     case OBJ_UPVALUE:
       printf("upvalue");
