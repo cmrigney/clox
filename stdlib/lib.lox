@@ -34,3 +34,16 @@ fun _array_foreach(arr, callback) {
     callback(arr.get(i), i);
   }
 }
+
+fun _string_replace(str, search, replace) {
+  var result = "";
+  var split = str.split(search);
+  var len = split.count();
+  split.forEach(fun (part, idx) {
+    result = result + part;
+    if(idx < len - 1) {
+      result = result + replace;
+    }
+  });
+  return result;
+}

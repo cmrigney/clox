@@ -146,7 +146,7 @@ ObjString *stringifyRecurse(Value value) {
       push(OBJ_VAL(copyString(", ", 2)));
       commas++;
     }
-    if(commas > 1) {
+    if(commas > 0) {
       pop(); // pop off last comma
       for(int i = 0; i < commas - 1; i++) {
         // concat all the commas we added
@@ -299,4 +299,22 @@ Value printMethods(Value *receiver, int argCount, Value *args) {
     entry = tableIterate(&klass->methods, entry);
   }
   return NIL_VAL;
+}
+
+Value getEnvVarNative(Value *receiver, int argCount, Value *args) {
+  if(argCount != 1) {
+    // runtimeError("getEnvVar() takes exactly 1 argument (%d given).", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_STRING(args[0])) {
+    // runtimeError("getEnvVar() first argument must be a string.");
+    return NIL_VAL;
+  }
+  ObjString *key = AS_STRING(args[0]);
+  char *value = getenv(key->chars);
+  if(value == NULL) {
+    return NIL_VAL;
+  } else {
+    return OBJ_VAL(copyString(value, strlen(value)));
+  }
 }

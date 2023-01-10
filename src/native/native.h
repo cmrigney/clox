@@ -14,6 +14,8 @@ Value printNative(Value *receiver, int argCount, Value *args);
 Value printlnNative(Value *receiver, int argCount, Value *args);
 Value printMethods(Value *receiver, int argCount, Value *args);
 
+Value getEnvVarNative(Value *receiver, int argCount, Value *args);
+
 Value getInstanceFields(Value *receiver, int argCount, Value *args);
 Value getInstanceFieldValueByKey(Value *receiver, int argCount, Value *args);
 Value setInstanceFieldValueByKey(Value *receiver, int argCount, Value *args);
@@ -36,5 +38,13 @@ Value buffer_set(Value *receiver, int argCount, Value* args);
 Value buffer_as_array(Value *receiver, int argCount, Value* args);
 Value buffer_as_string(Value *receiver, int argCount, Value* args);
 Value buffer_append(Value *receiver, int argCount, Value* args);
+
+// String methods
+Value string_length(Value *receiver, int argCount, Value* args);
+Value string_get(Value *receiver, int argCount, Value* args);
+Value string_find(Value *receiver, int argCount, Value* args);
+Value string_substring(Value *receiver, int argCount, Value* args);
+Value string_split(Value *receiver, int argCount, Value* args);
+Value string_replace(Value *receiver, int argCount, Value* args);
 
 #endif

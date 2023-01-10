@@ -147,6 +147,7 @@ void initVM() {
   defineNative("getInstanceFields", getInstanceFields, false);
   defineNative("getInstanceFieldValueByKey", getInstanceFieldValueByKey, false);
   defineNative("setInstanceFieldValueByKey", setInstanceFieldValueByKey, false);
+  defineNative("getEnvVar", getEnvVarNative, false);
 
   defineNative("systemImport", systemImportNative, true);
 
@@ -166,6 +167,13 @@ void initVM() {
   defineBoundNativeMethod(OBJ_BUFFER, "asArray", buffer_as_array, false);
   defineBoundNativeMethod(OBJ_BUFFER, "asString", buffer_as_string, false);
   defineBoundNativeMethod(OBJ_BUFFER, "append", buffer_append, false);
+
+  defineBoundNativeMethod(OBJ_STRING, "length", string_length, false);
+  defineBoundNativeMethod(OBJ_STRING, "get", string_get, false);
+  defineBoundNativeMethod(OBJ_STRING, "find", string_find, false);
+  defineBoundNativeMethod(OBJ_STRING, "substring", string_substring, false);
+  defineBoundNativeMethod(OBJ_STRING, "split", string_split, false);
+  defineBoundNativeMethod(OBJ_STRING, "replace", string_replace, true);
 }
 
 void freeVM() {
@@ -540,7 +548,7 @@ static InterpretResult run() {
       DISPATCH();
     }
     DO_OP_GET_PROPERTY: {
-      if(IS_ARRAY(peek(0))) {
+      if(IS_ARRAY(peek(0)) || IS_STRING(peek(0))) {
         Obj* obj = AS_OBJ(peek(0));
         ObjString* name = READ_STRING();
 
