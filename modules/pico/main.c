@@ -4,6 +4,12 @@
 #include <stdbool.h>
 #include "pico/stdlib.h"
 #include "tusb.h"
+#ifdef USE_PICO_W
+#include "pico/cyw43_arch.h"
+#include "lwip/pbuf.h"
+#include "lwip/tcp.h"
+#include "clox-pico-w.h"
+#endif
 #include "../clox.h"
 #include "autogen/pico_lib.h"
 
@@ -30,8 +36,13 @@ static Value initPinNative(Value *receiver, int argCount, Value *args) {
     // runtimeError("initPin() argument must be a number.");
     return NIL_VAL;
   }
-  double pin = AS_NUMBER(args[0]);
-  gpio_init((uint)pin); // TODO verify
+  uint pin = (uint)AS_NUMBER(args[0]);
+  #ifdef USE_PICO_W
+  if(pin == CYW43_WL_GPIO_LED_PIN) {
+    return NIL_VAL; // No init in this case
+  }
+  #endif
+  gpio_init(pin);
   return NIL_VAL;
 }
 
@@ -40,10 +51,14 @@ static Value getLedPinNative(Value *receiver, int argCount, Value *args) {
     // runtimeError("getLedPin() takes exactly 0 arguments (%d given).", argCount);
     return NIL_VAL;
   }
-  #ifdef PICO_DEFAULT_LED_PIN
-  return NUMBER_VAL(PICO_DEFAULT_LED_PIN);
+  #ifdef USE_PICO_W
+  return NUMBER_VAL(CYW43_WL_GPIO_LED_PIN);
   #else
-  return NIL_VAL;
+    #ifdef PICO_DEFAULT_LED_PIN
+    return NUMBER_VAL(PICO_DEFAULT_LED_PIN);
+    #else
+    return NIL_VAL;
+    #endif
   #endif
 }
 
@@ -56,8 +71,13 @@ static Value pinOutputNative(Value *receiver, int argCount, Value *args) {
     // runtimeError("pinOutput() first argument must be a number.");
     return NIL_VAL;
   }
-  double pin = AS_NUMBER(args[0]);
-  gpio_set_dir((uint)pin, GPIO_OUT);
+  uint pin = (uint)AS_NUMBER(args[0]);
+  #ifdef USE_PICO_W
+  if(pin == CYW43_WL_GPIO_LED_PIN) {
+    return NIL_VAL; // No dir change in this case
+  }
+  #endif
+  gpio_set_dir(pin, GPIO_OUT);
   return NIL_VAL;
 }
 
@@ -70,8 +90,14 @@ static Value pinOnNative(Value *receiver, int argCount, Value *args) {
     // runtimeError("pinOutput() first argument must be a number.");
     return NIL_VAL;
   }
-  double pin = AS_NUMBER(args[0]);
-  gpio_put((uint)pin, 1);
+  uint pin = (uint)AS_NUMBER(args[0]);
+  #ifdef USE_PICO_W
+  if(pin == CYW43_WL_GPIO_LED_PIN) {
+    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
+    return NIL_VAL; // No dir change in this case
+  }
+  #endif
+  gpio_put(pin, 1);
   return NIL_VAL;
 }
 
@@ -84,14 +110,42 @@ static Value pinOffNative(Value *receiver, int argCount, Value *args) {
     // runtimeError("pinOutput() first argument must be a number.");
     return NIL_VAL;
   }
-  double pin = AS_NUMBER(args[0]);
-  gpio_put((uint)pin, 0);
+  uint pin = (uint)AS_NUMBER(args[0]);
+  #ifdef USE_PICO_W
+  if(pin == CYW43_WL_GPIO_LED_PIN) {
+    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);
+    return NIL_VAL; // No dir change in this case
+  }
+  #endif
+  gpio_put(pin, 0);
   return NIL_VAL;
+}
+
+static Value isWNative(Value *receiver, int argCount, Value *args) {
+  if(argCount != 0) {
+    // runtimeError("isW() takes exactly 0 arguments (%d given).", argCount);
+    return NIL_VAL;
+  }
+  #ifdef USE_PICO_W
+  return BOOL_VAL(true);
+  #else
+  return BOOL_VAL(false);
+  #endif
 }
 
 bool registerModule_pico() {
   stdio_init_all();
+  sleep_ms(5000);
+  #ifdef USE_PICO_W
+  if (cyw43_arch_init()) {
+    printf("WiFi init failed");
+    return -1;
+  }
+  registerPicoWFunctions();
+  #endif
   registerNativeMethod("sleep", sleepMsNative);
+  registerNativeMethod("isW", isWNative);
+
   registerNativeMethod("__init_pin", initPinNative);
   registerNativeMethod("__get_led_pin", getLedPinNative);
   registerNativeMethod("__pin_output", pinOutputNative);
@@ -101,6 +155,12 @@ bool registerModule_pico() {
   registerLoxCode(code);
   free(code);
   return true;
+}
+
+void unregisterModule_pico() {
+  #ifdef USE_PICO_W
+  cyw43_arch_deinit();
+  #endif
 }
 
 static bool readline(char *buffer, size_t bufferLength) {

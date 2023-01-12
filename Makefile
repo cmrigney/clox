@@ -10,38 +10,31 @@ ifneq (,$(findstring run,$(firstword $(MAKECMDGOALS))))
   $(eval $(RUN_ARGS):;@:)
 endif
 
-prepare-stdlib:
-	mkdir -p autogen && xxd -i stdlib/lib.lox > autogen/stdlib_lox.h
-
-prepare-bundle:
+build:
 ifdef bundle
-	mkdir -p autogen && xxd -i -n exec_bundle ${bundle} > autogen/bundle_lox.h
-else
-	rm -f autogen/bundle_lox.h
-endif
-
-build: prepare-stdlib prepare-bundle
-ifdef bundle
-	mkdir -p build && cd build && BUNDLE=true cmake -DCMAKE_BUILD_TYPE=Debug .. && make -j4
+	mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DLOX_BUNDLE=${bundle} .. && make -j4
 else
 	mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && make -j4
 endif
 
-build-release: prepare-stdlib prepare-bundle
+build-release:
 ifdef bundle
-	mkdir -p build && cd build && BUNDLE=true cmake -DCMAKE_BUILD_TYPE=Release .. && make -j4
+	mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DLOX_BUNDLE=${bundle} .. && make -j4
 else
 	mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j4
 endif
 
-build-pico:
+build-pico: clean # clean needed because bundle persists for some reason
 	MODULES=pico make build-release
 
-build-wasm: prepare-stdlib prepare-bundle
+build-picow:
+	PICO_BOARD=pico_w USE_PICO_W=true make build-pico
+
+build-wasm:
 ifdef bundle
-	docker buildx build --platform linux/amd64 --build-arg bundle=true -f Dockerfile.wasm.build -t clox-wasm-builder . && docker run --rm --platform linux/amd64 clox-wasm-builder > clox.wasm
+	docker buildx build --platform linux/amd64 --build-arg BUNDLE=${bundle} --build-arg HAS_BUNDLE=true -f Dockerfile.wasm.build -t clox-wasm-builder . && docker run --rm --platform linux/amd64 clox-wasm-builder > clox.wasm
 else
-	docker buildx build --platform linux/amd64 -f Dockerfile.wasm.build -t clox-wasm-builder . && docker run --rm --platform linux/amd64 clox-wasm-builder > clox.wasm
+	docker buildx build --platform linux/amd64 --build-arg HAS_BUNDLE=false -f Dockerfile.wasm.build -t clox-wasm-builder . && docker run --rm --platform linux/amd64 clox-wasm-builder > clox.wasm
 endif
 
 build-modules:

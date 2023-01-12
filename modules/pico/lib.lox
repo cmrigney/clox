@@ -1,3 +1,5 @@
+var CRNL = Buffer(Array(13, 10)).asString();
+
 class Pin {
   init(pin) {
     this.pin = pin;
@@ -24,4 +26,287 @@ module.Pin = Pin;
 var ledPin = module.__get_led_pin();
 if(ledPin != nil) {
   module.LEDPin = Pin(ledPin).output();
+}
+
+if(module.isW()) {
+  class TCPSocket {
+    init(socket) {
+      this.socket = socket;
+    }
+
+    hasData() {
+      return module.__tcp_socket_has_data(this.socket);
+    }
+
+    read() {
+      return module.__tcp_socket_read(this.socket);
+    }
+
+    write(data) {
+      return module.__tcp_socket_write(this.socket, data);
+    }
+
+    isClosed() {
+      return module.__tcp_socket_is_closed(this.socket);
+    }
+
+    close() {
+      return module.__tcp_socket_close(this.socket);
+    }
+  }
+
+  class TCPServer {
+    init(port) {
+      this.port = port;
+      this.socket = module.__tcp_server_create(port);
+    }
+
+    hasBacklog() {
+      return module.__tcp_server_has_backlog(this.socket);
+    }
+
+    accept() {
+      var socket = module.__tcp_server_accept(this.socket);
+      if(socket != nil) {
+        return TCPSocket(socket);
+      }
+      else {
+        return nil;
+      }
+    }
+
+    isClosed() {
+      return module.__tcp_server_is_closed(this.socket);
+    }
+
+    close() {
+      return module.__tcp_server_close(this.socket);
+    }
+  }
+
+  class SocketManager < Object {
+    init() {
+      this.serverSockets = Array();
+      this.clientSockets = Array();
+    }
+
+    poll() {
+      var removeServers = Array();
+      var removeClients = Array();
+      this.serverSockets.forEach(fun (server, idx) {
+        if(server.isClosed()) {
+          // Remove server
+          removeServers.push(server);
+          server.onClose();
+          return;
+        }
+        if(server.hasBacklog()) {
+          var socket = server.accept();
+          if(socket != nil) {
+            this.clientSockets.push(socket);
+            server.onAccept(socket);
+          }
+        }
+      });
+      removeServers.forEach(fun (server, idx) {
+        this.serverSockets = this.serverSockets.filter(fun (s) {
+          return s != server;
+        });
+      });
+      this.clientSockets.forEach(fun (client, idx) {
+        if(client.isClosed()) {
+          // Remove client
+          removeClients.push(client);
+          client.onClose();
+          return;
+        }
+        if(client.hasData()) {
+          var data = client.read();
+          if(data != nil) {
+            client.onData(data);
+          }
+        }
+      });
+      removeClients.forEach(fun (client, idx) {
+        this.clientSockets = this.clientSockets.filter(fun (s) {
+          return s != client;
+        });
+      });
+    }
+  }
+
+  class HTTPRequest {
+    init(data) {
+      this.method = nil;
+      this.path = nil;
+      this.headers = .{};
+      this.body = nil;
+      this.parse(data);
+    }
+
+    json() {
+      if(this.body == nil) {
+        return nil;
+      }
+      if(this.headers.get("Content-Type") == "application/json") {
+        return parse(this.body.asString());
+      }
+      return nil;
+    }
+
+    text() {
+      if(this.body == nil) {
+        return nil;
+      }
+      return this.body.asString();
+    }
+
+    parse(buffer) {
+      var data = buffer.asString();
+      var parts = data.split(CRNL + CRNL);
+      var lines = parts.get(0).split(CRNL);
+      var firstLine = lines.get(0);
+      var firstLineParts = firstLine.split(" ");
+      this.method = firstLineParts.get(0);
+      this.path = firstLineParts.get(1);
+      var headerLines = lines.slice(1, lines.count());
+      headerLines.forEach(fun (line, idx) {
+        var parts = line.split(": ");
+        this.headers.set(parts.get(0), parts.get(1));
+      });
+      if(parts.count() > 1) {
+        this.body = Buffer(parts.get(1));
+      }
+      else {
+        this.body = nil;
+      }
+    }
+  }
+  
+  class HTTPResponse {
+    init() {
+      this.statusCode = 200;
+      this.headers = .{};
+      this.body = nil;
+      this.contentType = "text/plain";
+    }
+
+    responseCodeMessage() {
+      if(this.statusCode == 200) {
+        return "OK";
+      }
+      return "NotImplemented";
+    }
+
+    send(text) {
+      this.statusCode = 200;
+      this.contentType = "text/plain";
+      this.body = Buffer(text);
+      return this;
+    }
+
+    html(html) {
+      this.statusCode = 200;
+      this.contentType = "text/html";
+      this.body = Buffer(html);
+      return this;
+    }
+
+    json(obj) {
+      this.statusCode = 200;
+      this.contentType = "application/json";
+      this.body = Buffer(stringify(obj));
+      return this;
+    }
+
+    status(code) {
+      this.statusCode = code;
+      return this;
+    }
+
+    toBuffer() {
+      var str = "HTTP/1.1 " + this.statusCode + " " + this.responseCodeMessage() + CRNL;
+      if(this.body != nil) {
+        this.headers.set("Content-Type", this.contentType);
+        this.headers.set("Content-Length", "" + this.body.length());
+      }
+      var headerKeys = this.headers.keys();
+      for(var i = 0; i < headerKeys.count(); i = i + 1) {
+        var key = headerKeys.get(i);
+        str = str + key + ": " + this.headers.get(key) + CRNL;
+      }
+      str = str + CRNL;
+      var result = Buffer(str);
+      if(this.body != nil) {
+        result = result.append(this.body);
+      }
+      return result;
+    }
+  }
+
+  class HTTPServer {
+    init(port) {
+      this.port = port;
+      this.server = nil;
+      this.socketManager = SocketManager();
+      this.handlerMap = .{};
+    }
+
+    use(path, handler) {
+      this.handlerMap.set(path, handler);
+    }
+
+    onRequest(req, resp) {
+      var handler = this.handlerMap.get(req.path);
+      if(handler != nil) {
+        handler(req, resp);
+      }
+      else {
+        resp.statusCode = "404";
+        resp.body = Buffer("Not found");
+      }
+    }
+
+    listen(pollMode) {
+      this.server = TCPServer(this.port);
+      this.server.onAccept = fun (socket) {
+        logln("Client connected...");
+        socket.onData = fun (data) {
+          logln("Got data", data.asString());
+          var request = HTTPRequest(data);
+          // TODO verify we have the full request
+          var response = HTTPResponse();
+          this.onRequest(request, response);
+          logln("Writing response", response.toBuffer().asString());
+          socket.write(response.toBuffer());
+          socket.close();
+        };
+        socket.onClose = fun () {
+          logln("Socket closed");
+        };
+      };
+      this.server.onClose = fun () {
+        logln("Server closed");
+      };
+      this.socketManager.serverSockets.push(this.server);
+      while(!pollMode) { // block ourselves
+        this.poll();
+        pico.sleep(1);
+      }
+    }
+
+    poll() {
+      this.socketManager.poll();
+    }
+
+    stopListening() {
+      if(this.server != nil) {
+        this.server.close();
+      }
+    }
+  }
+
+  module.TCPServer = TCPServer;
+  module.SocketManager = SocketManager;
+  module.HTTPServer = HTTPServer;
 }

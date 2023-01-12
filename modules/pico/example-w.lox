@@ -1,0 +1,45 @@
+var pico = systemImport("pico");
+
+pico.LEDPin.on();
+
+fun error(msg) {
+  logln(msg);
+  while(true) { }
+}
+
+if(!pico.isW()) {
+  error("Only works on W");
+}
+
+logln("Attempting to connect to Wifi");
+if(!pico.connectToAP("<ssid>", "<password>", 30000)) {
+  pico.LEDPin.off();
+  error("Unable to connect to AP");
+}
+
+var server = pico.TCPServer(8080);
+logln("Listening on 8080");
+
+server.onAccept = fun (socket) {
+  logln("Client connected.");
+  socket.onData = fun (data) {
+    logln("Received: ", data);
+    socket.write(Buffer("You said: " + data.asString()));
+  };
+  socket.onClose = fun () {
+    logln("Client disconnected.");
+  };
+};
+
+server.onClose = fun() {
+  logln("Server closed");
+};
+
+var socketManager = pico.SocketManager();
+socketManager.serverSockets.push(server);
+
+while(true) {
+  socketManager.poll();
+  pico.sleep(1);
+}
+

@@ -28,6 +28,8 @@ if("$ENV{MODULES}" MATCHES "os")
   add_compile_definitions(OS_MODULE)
 endif()
 
+set(PIPE_CMD "cat") # pass through
+
 if("$ENV{MODULES}" MATCHES "pico")
   # initialize the Raspberry Pi Pico SDK
   pico_sdk_init()
@@ -39,12 +41,12 @@ if("$ENV{MODULES}" MATCHES "pico")
   pico_enable_stdio_uart(clox 0)
 
   add_subdirectory(modules/pico)
+  target_include_directories(clox PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/modules/pico # for lwipopts.h
+  )
   target_link_libraries(clox cloxpico)
   add_compile_definitions(PICO_MODULE)
-endif()
-
-if("$ENV{BUNDLE}" STREQUAL "true")
-  add_compile_definitions(BUNDLE)
+  set(PIPE_CMD sed "'s/unsigned char/#include <pico\\/platform.h>\\nconst unsigned char __in_flash()/g'")
 endif()
 
 if(DEFINED ENV{EMCC_JS}) 
@@ -64,3 +66,31 @@ endif()
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
+
+add_custom_target(
+  genstdlib ALL
+  COMMAND mkdir -p ${CMAKE_CURRENT_SOURCE_DIR}/autogen && xxd -i -n stdlib_lib_lox ${CMAKE_CURRENT_SOURCE_DIR}/stdlib/lib.lox | ${PIPE_CMD} > ${CMAKE_CURRENT_SOURCE_DIR}/autogen/stdlib_lox.h
+  BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/autogen/stdlib_lox.h
+  COMMENT "Generating Std Lox Lib"
+)
+
+add_dependencies(clox genstdlib)
+
+if(DEFINED LOX_BUNDLE)
+  add_custom_target(
+    genbundle ALL
+    COMMAND mkdir -p ${CMAKE_CURRENT_SOURCE_DIR}/autogen && xxd -i -n exec_bundle ${CMAKE_CURRENT_SOURCE_DIR}/${LOX_BUNDLE} | ${PIPE_CMD} > ${CMAKE_CURRENT_SOURCE_DIR}/autogen/bundle_lox.h
+    BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/autogen/bundle_lox.h
+    COMMENT "Generating Lox Bundle"
+  )
+  add_dependencies(clox genbundle)
+  add_compile_definitions(BUNDLE)
+else()
+  add_custom_target(
+    cleanbundle ALL
+    COMMAND rm -f ${CMAKE_CURRENT_SOURCE_DIR}/autogen/bundle_lox.h
+    BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/autogen/bundle_lox.h
+    COMMENT "Cleaning up Lox Bundle"
+  )
+  add_dependencies(clox cleanbundle)
+endif()

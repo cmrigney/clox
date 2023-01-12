@@ -18,3 +18,4 @@ autogen
 *.o
 *.dll
 .DS_Store
+local-testing

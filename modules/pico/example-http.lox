@@ -1,0 +1,53 @@
+var pico = systemImport("pico");
+
+pico.LEDPin.on();
+
+fun error(msg) {
+  logln(msg);
+  while(true) { }
+}
+
+if(!pico.isW()) {
+  error("Only works on W");
+}
+
+logln("Attempting to connect to Wifi");
+if(!pico.connectToAP("<ssid>", "<password>", 30000)) {
+  pico.LEDPin.off();
+  error("Unable to connect to AP");
+}
+
+var server = pico.HTTPServer(8080);
+
+server.use("/", fun (req, res) {
+  res.send("Hello World");
+});
+
+server.use("/json", fun (req, res) {
+  res.json(.{ hello: "world" });
+});
+
+server.use("/html", fun (req, res) {
+  res.html("<h1>Hello HTML</h1>");
+});
+
+server.use("/led", fun (req, res) {
+  if(req.method == "POST") {
+    var json = req.json();
+    if(json != nil) {
+      if(json.enable) {
+        pico.LEDPin.on();
+      } else {
+        pico.LEDPin.off();
+      }
+      res.status(200);
+    } else {
+      res.status(400).send("Malformed JSON");
+    }
+  } else {
+    res.status(405).send("Method not allowed");
+  }
+});
+
+logln("Listening on port 8080");
+server.listen(false);

@@ -19,7 +19,7 @@
 #endif
 
 #ifdef PICO_MODULE
-#include "pico/pico.h"
+#include "pico/clox-pico.h"
 #endif
 
 static void repl() {
@@ -63,7 +63,7 @@ static char* readFile(const char* path) {
   return buffer;
 }
 
-static void runBytes(unsigned char *bytes, unsigned int length) {
+static void runBytes(const unsigned char *bytes, unsigned int length) {
   char* source = (char*)malloc(length + 1);
   memcpy(source, bytes, length);
   source[length] = '\0';
@@ -121,5 +121,8 @@ int main(int argc, const char* argv[]) {
   #endif
 
   freeVM();
+  #ifdef PICO_MODULE
+  unregisterModule_pico();
+  #endif
   return 0;
 }

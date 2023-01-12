@@ -9,7 +9,12 @@
 #include "debug.h"
 #endif
 
-#define GC_HEAP_GROW_FACTOR 2
+#ifdef PICO_MODULE
+// Preserve memory as much as possible
+#define GC_HEAP_GROW_FACTOR 1.5f
+#else
+#define GC_HEAP_GROW_FACTOR 2.f
+#endif
 
 void* reallocate(void* pointer, size_t oldSize, size_t newSize) {
   vm.bytesAllocated += newSize - oldSize;
@@ -253,7 +258,7 @@ void collectGarbage() {
   tableRemoveWhite(&vm.strings);
   sweep();
 
-  vm.nextGC = vm.bytesAllocated * GC_HEAP_GROW_FACTOR;
+  vm.nextGC = (size_t)(((double)vm.bytesAllocated) * GC_HEAP_GROW_FACTOR);
 
 #ifdef DEBUG_LOG_GC
   printf("-- gc end\n");

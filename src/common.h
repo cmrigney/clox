@@ -14,4 +14,9 @@
 
 #define UINT8_COUNT (UINT8_MAX + 1)
 
+// Need to save as much memory as possible on low mem system
+#ifdef PICO_MODULE
+#define DEBUG_STRESS_GC
+#endif
+
 #endif

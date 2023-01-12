@@ -24,7 +24,7 @@ void registerLoxCode(const char *source);
 #include "os/os.h"
 #endif
 #ifdef PICO_MODULE
-#include "pico/pico.h"
+#include "pico/clox-pico.h"
 #endif
 
 #endif

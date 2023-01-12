@@ -150,6 +150,14 @@ ObjBuffer* newBuffer(int size) {
   return buffer;
 }
 
+// Assumes ownership of bytes
+ObjBuffer* takeBuffer(uint8_t* bytes, int size) {
+  ObjBuffer* buffer = ALLOCATE_OBJ(ObjBuffer, OBJ_BUFFER);
+  buffer->size = size;
+  buffer->bytes = bytes;
+  return buffer;
+}
+
 ObjUpvalue* newUpvalue(Value* slot) {
   ObjUpvalue* upvalue = ALLOCATE_OBJ(ObjUpvalue, OBJ_UPVALUE);
   upvalue->closed = NIL_VAL;

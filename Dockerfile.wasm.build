@@ -1,4 +1,6 @@
-FROM ubuntu:22.04 as builder-env
+ARG HAS_BUNDLE
+
+FROM ubuntu:22.04 as base
 
 RUN apt-get update && apt-get install -y \
     coreutils \
@@ -6,7 +8,19 @@ RUN apt-get update && apt-get install -y \
     clang \
     llvm \
     cmake \
+    git \
     wget
+
+WORKDIR /build
+
+# download latest version of xxd for -n option
+RUN git clone https://github.com/vim/vim.git && \
+  cd vim && \
+  git checkout 9a9432d3a223f7fbd902a0346030422ae0a97f0e
+WORKDIR /build/vim/src/xxd
+RUN make
+
+RUN cp /build/vim/src/xxd/xxd /usr/bin/
 
 WORKDIR /usr/wasi-sdk
 
@@ -15,16 +29,15 @@ ENV WASI_VERSION=14 WASI_VERSION_FULL=14.0 WASI_SDK_PATH=/usr/wasi-sdk/wasi-sdk-
 RUN wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
 RUN tar xvf wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
 
-FROM builder-env as wasm-build
-
-ARG bundle=false
-
-ENV WASM_STANDALONE=true
-ENV BUNDLE=${bundle}
-
 COPY . /clox
 
 WORKDIR /clox/wasm-build
-RUN cmake -DCMAKE_BUILD_TYPE=Release .. && make -j`nproc`
+ENV WASM_STANDALONE=true
 
+FROM base as wasm-build-false
+RUN cmake -DCMAKE_BUILD_TYPE=Release .. && make -j`nproc`
+FROM base as wasm-build-true
+ARG BUNDLE
+RUN cmake -DCMAKE_BUILD_TYPE=Release -DLOX_BUNDLE=${BUNDLE} .. && make -j`nproc`
+FROM wasm-build-${HAS_BUNDLE} as final
 CMD ["cat", "/clox/wasm-build/clox.wasm"]

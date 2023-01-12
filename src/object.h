@@ -140,6 +140,7 @@ ObjNative* newNative(NativeFn function, bool callsLox);
 ObjBoundNative* newBoundNative(Value receiver, NativeFn function, bool callsLox);
 ObjString* takeString(char* chars, int length);
 ObjBuffer* newBuffer(int size);
+ObjBuffer* takeBuffer(uint8_t* bytes, int size);
 
 static inline bool isObjType(Value value, ObjType type) {
   return IS_OBJ(value) && AS_OBJ(value)->type == type;

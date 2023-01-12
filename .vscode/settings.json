@@ -45,7 +45,11 @@
     "filesystem.h": "c",
     "stdlib.h": "c",
     "pico_lib.h": "c",
-    "vm.h": "c"
+    "vm.h": "c",
+    "clox-pico-w.h": "c",
+    "clox.h": "c",
+    "modules.h": "c",
+    "bundle_lox.h": "c"
   },
   "cmake.configureOnOpen": true
 }
