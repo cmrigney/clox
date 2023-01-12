@@ -159,6 +159,7 @@ void initVM() {
   defineBoundNativeMethod(OBJ_ARRAY, "filter", array_filter, true);
   defineBoundNativeMethod(OBJ_ARRAY, "map", array_map, true);
   defineBoundNativeMethod(OBJ_ARRAY, "forEach", array_foreach, true);
+  defineBoundNativeMethod(OBJ_ARRAY, "slice", array_slice, true);
 
   defineNative("Buffer", bufferConstructor, false);
   defineBoundNativeMethod(OBJ_BUFFER, "length", buffer_length, false);
@@ -621,6 +622,12 @@ static InterpretResult run() {
     DO_OP_LESS:     BINARY_OP(BOOL_VAL, <); DISPATCH();
     DO_OP_ADD: {
       if (IS_STRING(peek(0)) && IS_STRING(peek(1))) {
+        concatenate();
+      } else if(IS_STRING(peek(1)) && IS_NUMBER(peek(0))) {
+        double num = AS_NUMBER(pop());
+        char buf[32];
+        snprintf(buf, 32, "%d", (int)num);
+        push(OBJ_VAL(copyString(buf, strlen(buf))));
         concatenate();
       } else if (IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
         double b = AS_NUMBER(pop());

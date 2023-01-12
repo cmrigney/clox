@@ -29,6 +29,7 @@ Value array_get(Value *receiver, int argCount, Value *args);
 Value array_filter(Value *receiver, int argCount, Value *args);
 Value array_map(Value *receiver, int argCount, Value *args);
 Value array_foreach(Value *receiver, int argCount, Value *args);
+Value array_slice(Value *receiver, int argCount, Value *args);
 
 // Buffer methods
 Value bufferConstructor(Value *receiver, int argCount, Value* args);

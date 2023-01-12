@@ -95,3 +95,8 @@ Value array_foreach(Value *receiver, int argCount, Value *args) {
   // TODO verify args
   return callLoxCode("_array_foreach", receiver, argCount, args);
 }
+
+Value array_slice(Value *receiver, int argCount, Value *args) {
+  // TODO verify args
+  return callLoxCode("_array_slice", receiver, argCount, args);
+}

@@ -22,3 +22,5 @@ bools.push(true);
 bools.pop();
 logln(bools.count());
 logln(count.get(2));
+
+logln("Slice", bools.slice(2, 4));
