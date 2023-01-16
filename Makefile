@@ -25,7 +25,7 @@ else
 endif
 
 build-pico: clean # clean needed because bundle persists for some reason
-	MODULES=pico make build-release
+	PICO_SDK_PATH=./vendor/pico-sdk MODULES=pico make build-release
 
 build-picow:
 	PICO_BOARD=pico_w USE_PICO_W=true make build-pico
