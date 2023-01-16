@@ -25,8 +25,8 @@ else()
 endif()
 
 # enable usb output, disable uart output
-pico_enable_stdio_usb(cloxpico 1)
-pico_enable_stdio_uart(cloxpico 0)
+pico_enable_stdio_usb(cloxpico 0)
+pico_enable_stdio_uart(cloxpico 1)
 
 set(SED_ARG "s/unsigned char/#include <pico\\/platform.h>\\nconst unsigned char __in_flash()/g")
 
