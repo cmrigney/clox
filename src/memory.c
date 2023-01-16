@@ -254,7 +254,7 @@ void collectGarbage() {
   tableRemoveWhite(&vm.strings);
   sweep();
 
-  vm.nextGC = (size_t)(((double)vm.bytesAllocated) * GC_HEAP_GROW_FACTOR);
+  vm.nextGC = vm.bytesAllocated * GC_HEAP_GROW_FACTOR;
 
 #ifdef DEBUG_LOG_GC
   printf("-- gc end\n");
