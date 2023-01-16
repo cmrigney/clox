@@ -46,7 +46,7 @@ static Value readFileText(Value *receiver, int argCount, Value *args) {
   fseek(file, 0, SEEK_END);
   size_t size = ftell(file);
   rewind(file);
-  char *buffer = malloc(size + 1);
+  char *buffer = ALLOCATE(char, size + 1);
   if(buffer == NULL) {
     // runtimeError("Could not allocate memory for file \"%s\"", path->chars);
     fclose(file);
@@ -55,7 +55,7 @@ static Value readFileText(Value *receiver, int argCount, Value *args) {
   size_t read = fread(buffer, sizeof(char), size, file);
   if(read < size) {
     // runtimeError("Could not read file \"%s\"", path->chars);
-    free(buffer);
+    FREE(size +1, buffer);
     fclose(file);
     return NIL_VAL;
   }
