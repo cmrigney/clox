@@ -19,3 +19,4 @@ autogen
 *.dll
 .DS_Store
 local-testing
+.cortex-debug*

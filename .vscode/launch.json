@@ -9,13 +9,37 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/clox",
-      "args": ["examples/funcs.lox"],
+      "args": ["examples/buffer.lox"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
       "externalConsole": false,
       "MIMode": "lldb"
-    }
+    },
+    {
+      "name": "Pico Debug",
+      "cwd": "${workspaceRoot}",
+      // "executable": "${command:cmake.launchTargetPath}",
+      "executable": "build/clox.elf",
+      "request": "launch",
+      "type": "cortex-debug",
+      "servertype": "openocd",
+      "gdbPath" : "arm-none-eabi-gdb",
+      "device": "RP2040",
+      "configFiles": [
+          // "interface/picoprobe.cfg",
+          "interface/cmsis-dap.cfg",
+          "target/rp2040.cfg"
+      ],
+      "svdFile": "${env:PICO_SDK_PATH}/src/rp2040/hardware_regs/rp2040.svd",
+      "runToEntryPoint": "main",
+      // Work around for stopping at main on restart
+      "postRestartCommands": [
+          "break main",
+          "continue"
+      ],
+      "searchDir": ["/Users/crigney/Development/pico/openocd/tcl"],
+  }
     
   ]
 }
