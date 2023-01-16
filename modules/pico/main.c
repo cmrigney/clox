@@ -3,7 +3,9 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "pico/stdlib.h"
+#ifdef PICO_TARGET_STDIO_USB
 #include "tusb.h"
+#endif
 #ifdef USE_PICO_W
 #include "pico/cyw43_arch.h"
 #include "lwip/pbuf.h"
@@ -162,6 +164,12 @@ void unregisterModule_pico() {
   cyw43_arch_deinit();
   #endif
 }
+
+#ifndef PICO_TARGET_STDIO_USB
+bool tud_cdc_connected() {
+  return true; // stub out for UART
+}
+#endif
 
 static bool readline(char *buffer, size_t bufferLength) {
   char u, *p;
