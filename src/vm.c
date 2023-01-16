@@ -112,7 +112,11 @@ void initVM() {
   vm.objects = NULL;
 
   vm.bytesAllocated = 0;
+  #ifdef PICO_MODULE
+  vm.nextGC = 1024;
+  #else
   vm.nextGC = 1024 * 1024;
+  #endif
 
   vm.grayCount = 0;
   vm.grayCapacity = 0;

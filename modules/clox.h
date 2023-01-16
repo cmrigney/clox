@@ -6,5 +6,6 @@
 #include "../src/object.h"
 #include "../src/value.h"
 #include "../src/compiler.h"
+#include "../src/memory.h"
 
 #endif

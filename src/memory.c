@@ -9,12 +9,8 @@
 #include "debug.h"
 #endif
 
-#ifdef PICO_MODULE
-// Preserve memory as much as possible
-#define GC_HEAP_GROW_FACTOR 1.5f
-#else
-#define GC_HEAP_GROW_FACTOR 2.f
-#endif
+#define GC_HEAP_GROW_FACTOR 2
+
 
 void* reallocate(void* pointer, size_t oldSize, size_t newSize) {
   vm.bytesAllocated += newSize - oldSize;

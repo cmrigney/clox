@@ -91,6 +91,8 @@ if(module.isW()) {
     }
 
     poll() {
+      pico.__poll_network();
+
       var removeServers = Array();
       var removeClients = Array();
       this.serverSockets.forEach(fun (server, idx) {

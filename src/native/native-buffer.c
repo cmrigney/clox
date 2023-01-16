@@ -139,10 +139,10 @@ Value buffer_as_string(Value *receiver, int argCount, Value* args) {
     return NIL_VAL;
   }
   ObjBuffer *buffer = AS_BUFFER(*receiver);
-  char *chars = (char*)malloc(buffer->size + 1);
-  memcpy_uint8_t_char(chars, buffer->bytes, buffer->size);
-  chars[buffer->size] = '\0';
-  ObjString *string = takeString(chars, buffer->size);
+  char* heapChars = ALLOCATE(char, buffer->size + 1);
+  memcpy_uint8_t_char(heapChars, buffer->bytes, buffer->size);
+  heapChars[buffer->size] = '\0';
+  ObjString *string = takeString(heapChars, buffer->size);
   return OBJ_VAL(string);
 }
 

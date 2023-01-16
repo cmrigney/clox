@@ -13,7 +13,10 @@
 #define POLL_TIME_S 10
 #define DEBUG_printf
 
+typedef struct TCP_SERVER_SOCKET_PICO_ TCP_SERVER_SOCKET_PICO_;
+
 typedef struct TCP_CLIENT_SOCKET_PICO_ {
+  TCP_SERVER_SOCKET_PICO_ *server; // If NULL, then also designates owned by VM
   struct tcp_pcb *client_pcb;
   struct pbuf *recv_packet;
   bool is_closed;
@@ -25,7 +28,7 @@ typedef struct TCP_SERVER_SOCKET_PICO_ {
   bool is_closed;
 } TCP_SERVER_SOCKET_PICO;
 
-static int findFirstFreeClientSlot(TCP_SERVER_SOCKET_PICO *server) {
+static int find_first_free_client_slot(TCP_SERVER_SOCKET_PICO *server) {
   cyw43_arch_lwip_check();
   for(int i = 0; i < MAX_PENDING_CLIENTS; i++) {
     if(server->clients[i] == NULL) {
@@ -35,7 +38,7 @@ static int findFirstFreeClientSlot(TCP_SERVER_SOCKET_PICO *server) {
   return -1;
 }
 
-static int findFirstClient(TCP_SERVER_SOCKET_PICO *server) {
+static int find_first_client(TCP_SERVER_SOCKET_PICO *server) {
   cyw43_arch_lwip_check();
   for(int i = 0; i < MAX_PENDING_CLIENTS; i++) {
     if(server->clients[i] != NULL) {
@@ -45,7 +48,7 @@ static int findFirstClient(TCP_SERVER_SOCKET_PICO *server) {
   return -1;
 }
 
-static void removeClient(TCP_SERVER_SOCKET_PICO *server, TCP_CLIENT_SOCKET_PICO *client) {
+static void remove_client(TCP_SERVER_SOCKET_PICO *server, TCP_CLIENT_SOCKET_PICO *client) {
   cyw43_arch_lwip_check();
   for(int i = 0; i < MAX_PENDING_CLIENTS; i++) {
     if(server->clients[i] == client) {
@@ -55,7 +58,13 @@ static void removeClient(TCP_SERVER_SOCKET_PICO *server, TCP_CLIENT_SOCKET_PICO 
   }
 }
 
-static int closeClientSocket(TCP_CLIENT_SOCKET_PICO *client) {
+static void maybe_remove_client(TCP_CLIENT_SOCKET_PICO *client) {
+  if(client->server != NULL) {
+    remove_client(client->server, client);
+  }
+}
+
+static int close_client_socket(TCP_CLIENT_SOCKET_PICO *client) {
   cyw43_arch_lwip_check();
   int err = ERR_OK;
   DEBUG_printf("Closing connection with client\n");
@@ -63,6 +72,7 @@ static int closeClientSocket(TCP_CLIENT_SOCKET_PICO *client) {
     tcp_arg(client->client_pcb, NULL);
     tcp_sent(client->client_pcb, NULL);
     tcp_recv(client->client_pcb, NULL);
+    tcp_poll(client->client_pcb, NULL, 0);
     tcp_err(client->client_pcb, NULL);
     int err = tcp_close(client->client_pcb);
     if (err != ERR_OK) {
@@ -72,8 +82,13 @@ static int closeClientSocket(TCP_CLIENT_SOCKET_PICO *client) {
     client->client_pcb = NULL;
   }
   client->is_closed = true;
-  // memory will be freed by garbage collector
   return err;
+}
+
+static void maybe_free_client(TCP_CLIENT_SOCKET_PICO *client) {
+  if(client->server != NULL) { // if not owned by VM, free here
+    FREE(TCP_CLIENT_SOCKET_PICO, client);
+  }
 }
 
 static Value connectToAPNative(Value *receiver, int argCount, Value *args) {
@@ -113,17 +128,23 @@ static Value connectToAPNative(Value *receiver, int argCount, Value *args) {
 
 
 static void tcp_server_err(void *arg, err_t err) {
-  if (err != ERR_ABRT) {
-    TCP_CLIENT_SOCKET_PICO *clientSocket = (TCP_CLIENT_SOCKET_PICO*)arg;
-    DEBUG_printf("tcp_client_err_fn %d\n", err);
-    closeClientSocket(clientSocket);
+  TCP_CLIENT_SOCKET_PICO *clientSocket = (TCP_CLIENT_SOCKET_PICO*)arg;
+  clientSocket->client_pcb = NULL; // already freed according to docs
+  DEBUG_printf("tcp_client_err_fn %d\n", err);
+  if (err != ERR_ABRT) { // aborts assume connection is already closed at aborter's end
+    close_client_socket(clientSocket);
+    maybe_remove_client(clientSocket);
+    maybe_free_client(clientSocket);
   }
 }
 
 static err_t tcp_server_poll(void *arg, struct tcp_pcb *tpcb) {
     DEBUG_printf("tcp_server_poll_fn\n");
     TCP_CLIENT_SOCKET_PICO *clientSocket = (TCP_CLIENT_SOCKET_PICO*)arg;
-    return closeClientSocket(clientSocket); // no response is an error?
+    err_t result = close_client_socket(clientSocket); // no response is an error, close connection
+    maybe_remove_client(clientSocket);
+    maybe_free_client(clientSocket);
+    return result;
 }
 
 static err_t tcp_server_sent(void *arg, struct tcp_pcb *tpcb, u16_t len) {
@@ -135,7 +156,10 @@ static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, er
   TCP_CLIENT_SOCKET_PICO *clientSocket = (TCP_CLIENT_SOCKET_PICO*)arg;
   if(!p) {
     DEBUG_printf("connection is closed");
-    return closeClientSocket(clientSocket);
+    err_t result = close_client_socket(clientSocket);
+    maybe_remove_client(clientSocket);
+    maybe_free_client(clientSocket);
+    return result;
   }
 
   DEBUG_printf("Received data from client\n");
@@ -153,24 +177,24 @@ static err_t tcp_server_accept(void *arg, struct tcp_pcb *client_pcb, err_t err)
   }
   DEBUG_printf("Client connected\n");
 
-  TCP_CLIENT_SOCKET_PICO *clientSocket = (TCP_CLIENT_SOCKET_PICO*)malloc(sizeof(TCP_CLIENT_SOCKET_PICO));
+  TCP_CLIENT_SOCKET_PICO *clientSocket = ALLOCATE(TCP_CLIENT_SOCKET_PICO, 1);
   memset(clientSocket, 0, sizeof(TCP_CLIENT_SOCKET_PICO));
 
   // Assumes single accept at a time
-  int freeSlot = findFirstFreeClientSlot(serverSocket);
+  int freeSlot = find_first_free_client_slot(serverSocket);
   if(freeSlot == -1) {
     DEBUG_printf("No free slots for client\n");
-    free(clientSocket);
+    FREE(TCP_CLIENT_SOCKET_PICO, clientSocket);
     return ERR_VAL;
   }
   serverSocket->clients[freeSlot] = clientSocket;
 
   clientSocket->client_pcb = client_pcb;
+  clientSocket->server = serverSocket;
 
   tcp_arg(clientSocket->client_pcb, clientSocket);
   tcp_sent(clientSocket->client_pcb, tcp_server_sent);
   tcp_recv(clientSocket->client_pcb, tcp_server_recv);
-  // TODO these two have race conditions
   tcp_poll(clientSocket->client_pcb, tcp_server_poll, POLL_TIME_S * 2);
   tcp_err(clientSocket->client_pcb, tcp_server_err);
 
@@ -193,7 +217,7 @@ static Value tcpServerHasBacklogNative(Value *receiver, int argCount, Value *arg
     return NIL_VAL;
   }
   cyw43_arch_lwip_begin();
-  int acceptIdx = findFirstClient(socket);
+  int acceptIdx = find_first_client(socket);
   cyw43_arch_lwip_end();
   return BOOL_VAL(acceptIdx >= 0);
 }
@@ -214,11 +238,12 @@ static Value tcpServerAcceptNative(Value *receiver, int argCount, Value *args) {
     return NIL_VAL;
   }
   cyw43_arch_lwip_begin();
-  int acceptIdx = findFirstClient(socket);
+  int acceptIdx = find_first_client(socket);
   if(acceptIdx >= 0) {
     DEBUG_printf("Accepting client\n");
     TCP_CLIENT_SOCKET_PICO *clientSocket = socket->clients[acceptIdx];
-    removeClient(socket, clientSocket);
+    remove_client(socket, clientSocket);
+    clientSocket->server = NULL; // take ownership
 
     ObjBuffer *clientSocketBuffer = takeBuffer((uint8_t*)clientSocket, sizeof(TCP_CLIENT_SOCKET_PICO));
     cyw43_arch_lwip_end();
@@ -295,8 +320,9 @@ static Value tcpServerCloseNative(Value *receiver, int argCount, Value *args) {
   cyw43_arch_lwip_begin();
   for(int i = 0; i < MAX_PENDING_CLIENTS; i++) {
     if(socket->clients[i] != NULL) {
-      closeClientSocket(socket->clients[i]);
-      free(socket->clients[i]); // won't be tracked by garbage collector so free now
+      close_client_socket(socket->clients[i]);
+      // Owned by VM, so no need to remove from server
+      maybe_free_client(socket->clients[i]);
       socket->clients[i] = NULL;
     }
   }
@@ -346,17 +372,24 @@ static Value tcpSocketReadNative(Value *receiver, int argCount, Value *args) {
   cyw43_arch_lwip_begin();
   DEBUG_printf("Attemping read\n");
   if(socket->recv_packet != NULL) {
-    ObjBuffer *buffer = newBuffer(socket->recv_packet->tot_len);
+    ObjBuffer *buffer = NULL;
     if (socket->recv_packet->tot_len > 0) {
-        DEBUG_printf("Reading data %d\n", socket->recv_packet->tot_len);
-        // Receive the buffer
-        pbuf_copy_partial(socket->recv_packet, buffer->bytes, socket->recv_packet->tot_len, 0);
-        tcp_recved(socket->client_pcb, socket->recv_packet->tot_len);
+      buffer = newBuffer((int)socket->recv_packet->tot_len);
+      DEBUG_printf("Reading data %hu\n", socket->recv_packet->tot_len);
+      // Receive the buffer
+      pbuf_copy_partial(socket->recv_packet, buffer->bytes, socket->recv_packet->tot_len, 0);
+      tcp_recved(socket->client_pcb, socket->recv_packet->tot_len);
+    } else {
+      DEBUG_printf("Invalid tot_len: %hu\n", socket->recv_packet->tot_len);
     }
     pbuf_free(socket->recv_packet);
     socket->recv_packet = NULL;
     cyw43_arch_lwip_end();
-    return OBJ_VAL(buffer);
+    if(buffer != NULL) {
+      return OBJ_VAL(buffer);
+    } else {
+      return OBJ_VAL(newBuffer(0));
+    }
   } else {
     DEBUG_printf("No receive packet\n");
   }
@@ -446,9 +479,19 @@ static Value tcpSocketCloseNative(Value *receiver, int argCount, Value *args) {
     return NIL_VAL;
   }
   cyw43_arch_lwip_begin();
-  closeClientSocket(socket);
+  close_client_socket(socket);
+  // Don't free, we know it's owned by VM
   cyw43_arch_lwip_end();
   DEBUG_printf("Server socket closed\n");
+  return NIL_VAL;
+}
+
+static Value pollNetworkNative(Value *receiver, int argCount, Value *args) {
+  if(argCount != 0) {
+    // runtimeError("pollNetworkNative() takes exactly 0 arguments (%d given).", argCount);
+    return NIL_VAL;
+  }
+  cyw43_arch_poll();
   return NIL_VAL;
 }
 
@@ -464,4 +507,5 @@ void registerPicoWFunctions() {
   registerNativeMethod("__tcp_socket_write", tcpSocketWriteNative);
   registerNativeMethod("__tcp_socket_is_closed", tcpSocketIsClosedNative);
   registerNativeMethod("__tcp_socket_close", tcpSocketCloseNative);
+  registerNativeMethod("__poll_network", pollNetworkNative);
 }
