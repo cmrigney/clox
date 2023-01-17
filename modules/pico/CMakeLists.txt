@@ -13,6 +13,11 @@ add_library(cloxpico ${SOURCE_FILES})
 # initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+target_include_directories(cloxpico PRIVATE
+  ${CMAKE_CURRENT_LIST_DIR}/..
+)
+add_compile_definitions(PICO_MODULE)
+
 if(DEFINED ENV{USE_PICO_W})
   message("Building for Pico W")
   target_include_directories(cloxpico PRIVATE
