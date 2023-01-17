@@ -24,6 +24,7 @@ void markObject(Obj* object);
 void markValue(Value value);
 void collectGarbage();
 void freeObjects();
+size_t objStructSize(Obj* object);
 
 #endif
 

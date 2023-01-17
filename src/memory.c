@@ -22,6 +22,10 @@ void* reallocate(void* pointer, size_t oldSize, size_t newSize) {
     if (vm.bytesAllocated > vm.nextGC) {
       collectGarbage();
     }
+
+    if(vm.bytesAllocated > vm.debug_maxTotalAllocated) {
+      vm.debug_maxTotalAllocated = vm.bytesAllocated;
+    }
   }
 
   if (newSize == 0) {
@@ -273,4 +277,43 @@ void freeObjects() {
   }
 
   free(vm.grayStack);
+}
+
+size_t objStructSize(Obj* object) {
+  switch (object->type) {
+    case OBJ_ARRAY: {
+      return sizeof(ObjArray);
+    }
+    case OBJ_BOUND_METHOD: {
+      return sizeof(ObjBoundMethod);
+    }
+    case OBJ_CLASS: {
+      return sizeof(ObjClass);
+    }
+    case OBJ_CLOSURE: {
+      return sizeof(ObjClosure);
+    }
+    case OBJ_FUNCTION: {
+      return sizeof(ObjFunction);
+    }
+    case OBJ_INSTANCE: {
+      return sizeof(ObjInstance);
+    }
+    case OBJ_NATIVE: {
+      return sizeof(ObjNative);
+    }
+    case OBJ_BOUND_NATIVE: {
+      return sizeof(ObjBoundNative);
+    }
+    case OBJ_STRING: {
+      return sizeof(ObjString);
+    }
+    case OBJ_UPVALUE: {
+      return sizeof(ObjUpvalue);
+    }
+    case OBJ_BUFFER: {
+      return sizeof(ObjBuffer);
+    }
+  }
+  return 0;
 }

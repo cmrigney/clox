@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include "pico/stdlib.h"
 #ifdef PICO_TARGET_STDIO_USB
 #include "tusb.h"
@@ -135,9 +136,58 @@ static Value isWNative(Value *receiver, int argCount, Value *args) {
   #endif
 }
 
+static inline void setInstanceField(ObjInstance *instance, const char *name, Value value) {
+  ObjString *str = copyString(name, strlen(name));
+  push(OBJ_VAL(str));
+  tableSet(&instance->fields, str, value);
+  pop();
+}
+
+extern char __StackLimit; /* Set by linker.  */
+extern char end; /* Set by linker.  */
+static Value getPicoStatsNative(Value *receiver, int argCount, Value *args) {
+  if(argCount != 0) {
+    // runtimeError("getPicoStats() takes exactly 0 arguments (%d given).", argCount);
+    return NIL_VAL;
+  }
+  ObjInstance *instance = createObjectInstance();
+  push(OBJ_VAL(instance));
+
+  void *heapCurrent = sbrk(0);
+  void *heapTop = &__StackLimit; // Maximum heap ptr: https://github.com/raspberrypi/pico-sdk/blob/master/src/rp2_common/pico_runtime/runtime.c
+  ptrdiff_t heapUnusedSys = (uintptr_t)heapTop - (uintptr_t)heapCurrent;
+  ptrdiff_t usedHeapSys = (uintptr_t)heapCurrent - (uintptr_t)&end;
+
+  Obj *highestHeapObj = vm.objects;
+  Obj *object = vm.objects;
+  while(object != NULL) {
+    if(object > highestHeapObj) {
+      highestHeapObj = object;
+    }
+    object = object->next;
+  }
+  ptrdiff_t heapUnusedManaged = (uintptr_t)heapTop - (uintptr_t)highestHeapObj - objStructSize(highestHeapObj);
+  
+  void *ptr = malloc(1);
+  ptrdiff_t heapUnusedUnmanaged = (uintptr_t)heapTop - (uintptr_t)ptr + 1;
+  free(ptr);
+
+  setInstanceField(instance, "sys_heap_used", NUMBER_VAL((double)usedHeapSys));
+  setInstanceField(instance, "sys_heap_unused", NUMBER_VAL((double)heapUnusedSys));
+  setInstanceField(instance, "sys_unmanaged_heap_unused_by_malloc", NUMBER_VAL((double)heapUnusedUnmanaged));
+  setInstanceField(instance, "sys_managed_heap_unused", NUMBER_VAL((double)heapUnusedManaged));
+
+  int var;
+  ptr = &var;
+  ptrdiff_t stackUnused = (uintptr_t)ptr - (uintptr_t)heapTop;
+  setInstanceField(instance, "sys_stack_unused", NUMBER_VAL((double)stackUnused));
+
+  return pop();
+}
+
 bool registerModule_pico() {
   stdio_init_all();
-  sleep_ms(5000);
+  // sleep_ms(5000);
   #ifdef USE_PICO_W
   if (cyw43_arch_init()) {
     printf("WiFi init failed");
@@ -147,6 +197,7 @@ bool registerModule_pico() {
   #endif
   registerNativeMethod("sleep", sleepMsNative);
   registerNativeMethod("isW", isWNative);
+  registerNativeMethod("getPicoStats", getPicoStatsNative);
 
   registerNativeMethod("__init_pin", initPinNative);
   registerNativeMethod("__get_led_pin", getLedPinNative);

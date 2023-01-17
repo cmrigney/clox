@@ -8,6 +8,7 @@
 #include "json/json.h"
 #include "table.h"
 #include "vm.h"
+#include "memory.h"
 
 Value clockNative(Value *receiver, int argCount, Value* args) {
   return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
@@ -317,4 +318,31 @@ Value getEnvVarNative(Value *receiver, int argCount, Value *args) {
   } else {
     return OBJ_VAL(copyString(value, strlen(value)));
   }
+}
+
+static inline void setInstanceField(ObjInstance *instance, const char *name, Value value) {
+  ObjString *str = copyString(name, strlen(name));
+  push(OBJ_VAL(str));
+  tableSet(&instance->fields, str, value);
+  pop();
+}
+
+Value getMemStatsNative(Value *receiver, int argCount, Value *args) {
+  if(argCount != 0) {
+    // runtimeError("getMemStats() takes exactly 0 arguments (%d given).", argCount);
+    return NIL_VAL;
+  }
+  ObjInstance *instance = createObjectInstance();
+  push(OBJ_VAL(instance));
+  int numberOfObjects = 0;
+  Obj* object = vm.objects;
+  while (object != NULL) {
+    numberOfObjects++;
+    object = object->next;
+  }
+  setInstanceField(instance, "vm_heap_usage", NUMBER_VAL((double)vm.bytesAllocated));
+  setInstanceField(instance, "vm_next_gc", NUMBER_VAL((double)vm.nextGC));
+  setInstanceField(instance, "vm_max_lifetime_usage", NUMBER_VAL((double)vm.debug_maxTotalAllocated));
+  setInstanceField(instance, "vm_number_of_objects", NUMBER_VAL((double)numberOfObjects));
+  return pop();
 }

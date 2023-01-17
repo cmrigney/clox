@@ -18,6 +18,16 @@ VM vm;
 static bool call(ObjClosure* closure, int argCount);
 static bool callValue(Value callee, int argCount);
 
+ObjInstance *createObjectInstance() {
+  Value objClassVal;
+  if(!tableGet(&vm.globals, copyString("Object", 6), &objClassVal)) {
+    perror("Could not find class 'Object'."); // TODO should be runtime error
+    exit(80);
+  }
+  ObjInstance *instance = newInstance(AS_CLASS(objClassVal));
+  return instance;
+}
+
 Value callLoxCode(const char* name, Value *receiver, int argCount, Value *args) {
   ObjString *key = copyString(name, (int)strlen(name));
   Value fn;
@@ -117,6 +127,7 @@ void initVM() {
   #else
   vm.nextGC = 1024 * 1024;
   #endif
+  vm.debug_maxTotalAllocated = 0;
 
   vm.grayCount = 0;
   vm.grayCapacity = 0;
@@ -152,6 +163,7 @@ void initVM() {
   defineNative("getInstanceFieldValueByKey", getInstanceFieldValueByKey, false);
   defineNative("setInstanceFieldValueByKey", setInstanceFieldValueByKey, false);
   defineNative("getEnvVar", getEnvVarNative, false);
+  defineNative("getMemStats", getMemStatsNative, false);
 
   defineNative("systemImport", systemImportNative, true);
 

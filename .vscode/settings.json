@@ -50,7 +50,8 @@
     "clox.h": "c",
     "modules.h": "c",
     "bundle_lox.h": "c",
-    "tusb.h": "c"
+    "tusb.h": "c",
+    "debug.h": "c"
   },
   "cmake.configureOnOpen": true,
   "cortex-debug.openocdPath": "/Users/crigney/Development/pico/openocd/src/openocd"

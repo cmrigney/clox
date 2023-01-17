@@ -10,7 +10,7 @@
 #ifdef PICO_MODULE
 // Preserve memory as much as possible
 #define MAX_NATIVE_MODULES 2
-#define FRAMES_MAX 16
+#define FRAMES_MAX 20
 #define LOX_PATH_MAX 10
 #else
 #define MAX_NATIVE_MODULES 256
@@ -38,6 +38,7 @@ typedef struct {
 
   size_t bytesAllocated;
   size_t nextGC;
+  size_t debug_maxTotalAllocated;
   Obj* objects;
   int grayCount;
   int grayCapacity;
@@ -67,5 +68,6 @@ Value peek(int distance);
 Value callLoxCode(const char* name, Value *receiver, int argCount, Value *args);
 void concatenate();
 bool callModule(ObjClosure *closure, int argCount);
+ObjInstance *createObjectInstance();
 
 #endif

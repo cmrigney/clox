@@ -16,6 +16,8 @@ Value printMethods(Value *receiver, int argCount, Value *args);
 
 Value getEnvVarNative(Value *receiver, int argCount, Value *args);
 
+Value getMemStatsNative(Value *receiver, int argCount, Value *args);
+
 Value getInstanceFields(Value *receiver, int argCount, Value *args);
 Value getInstanceFieldValueByKey(Value *receiver, int argCount, Value *args);
 Value setInstanceFieldValueByKey(Value *receiver, int argCount, Value *args);
