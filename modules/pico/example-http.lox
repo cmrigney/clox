@@ -19,6 +19,13 @@ if(!pico.connectToAP("<ssid>", "<password>", 30000)) {
 
 var server = pico.HTTPServer(8080);
 
+server.use("/mem", fun (req, res) {
+  res.json(.{
+    vm: getMemStats(),
+    pico: pico.getPicoStats()
+  });
+});
+
 server.use("/", fun (req, res) {
   res.send("Hello World");
 });
