@@ -9,8 +9,10 @@ project(clox VERSION 0.1.0)
 include(CTest)
 enable_testing()
 
+add_executable(clox)
+
 FILE(GLOB MyCSources src/*.c src/native/*.c)
-add_executable(clox ${MyCSources})
+target_sources(clox PRIVATE ${MyCSources})
 
 target_include_directories(clox PRIVATE src vendor autogen modules)
 
@@ -31,22 +33,8 @@ endif()
 set(PIPE_CMD "cat") # pass through
 
 if("$ENV{MODULES}" MATCHES "pico")
-  # initialize the Raspberry Pi Pico SDK
-  pico_sdk_init()
-  # create map/bin/hex/uf2 file in addition to ELF
-  pico_add_extra_outputs(clox)
-
-  # enable usb output, disable uart output
-  pico_enable_stdio_usb(clox 0)
-  pico_enable_stdio_uart(clox 1)
-
-  add_subdirectory(modules/pico)
-  target_include_directories(clox PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}/modules/pico # for lwipopts.h
-  )
-  target_link_libraries(clox cloxpico)
-  add_compile_definitions(PICO_MODULE)
   set(PIPE_CMD sed "'s/unsigned char/#include <pico\\/platform.h>\\nconst unsigned char __in_flash()/g'")
+  include(modules/pico/pico-module.cmake)
 endif()
 
 if(DEFINED ENV{EMCC_JS}) 

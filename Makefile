@@ -24,8 +24,8 @@ else
 	mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j4
 endif
 
-build-pico: clean # clean needed because bundle persists for some reason
-	PICO_SDK_PATH=./vendor/pico-sdk MODULES=pico make build-release
+build-pico:
+	PICO_SDK_PATH=./vendor/pico-sdk MODULES=pico make build
 
 build-picow:
 	PICO_BOARD=pico_w USE_PICO_W=true make build-pico
