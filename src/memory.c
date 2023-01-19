@@ -124,6 +124,7 @@ static void blackenObject(Obj* object) {
       break;
     }
     case OBJ_BUFFER:
+    case OBJ_REF:
     case OBJ_NATIVE:
     case OBJ_STRING:
       break;
@@ -193,6 +194,14 @@ static void freeObject(Obj* object) {
       ObjBuffer* buffer = (ObjBuffer*)object;
       FREE_ARRAY(uint8_t, buffer->bytes, buffer->size);
       FREE(ObjBuffer, object);
+      break;
+    }
+    case OBJ_REF: {
+      ObjRef* ref = (ObjRef*)object;
+      if(ref->dispose != NULL) {
+        ref->dispose(ref->data);
+      }
+      FREE(ObjRef, object);
       break;
     }
   }
@@ -313,6 +322,9 @@ size_t objStructSize(Obj* object) {
     }
     case OBJ_BUFFER: {
       return sizeof(ObjBuffer);
+    }
+    case OBJ_REF: {
+      return sizeof(ObjRef);
     }
   }
   return 0;

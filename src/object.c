@@ -141,6 +141,14 @@ ObjString* copyString(const char* chars, int length) {
   return allocateString(heapChars, length, hash);
 }
 
+ObjRef* newRef(const char *description, void *data, void (*dispose)(void *data)) {
+  ObjRef* ref = ALLOCATE_OBJ(ObjRef, OBJ_REF);
+  ref->description = description;
+  ref->data = data;
+  ref->dispose = dispose;
+  return ref;
+}
+
 ObjBuffer* newBuffer(int size) {
   ObjBuffer* buffer = ALLOCATE_OBJ(ObjBuffer, OBJ_BUFFER);
   buffer->size = size;
@@ -225,6 +233,9 @@ void printObject(Value value) {
       break;
     case OBJ_BUFFER:
       printf("<buffer %d>", AS_BUFFER(value)->size);
+      break;
+    case OBJ_REF:
+      printf("<ref %s>", AS_REF(value)->description);
       break;
     case OBJ_UPVALUE:
       printf("upvalue");

@@ -28,6 +28,13 @@ typedef struct TCP_SERVER_SOCKET_PICO_ {
   bool is_closed;
 } TCP_SERVER_SOCKET_PICO;
 
+static void dispose_server_socket(void *data) {
+  FREE(TCP_SERVER_SOCKET_PICO, data);
+}
+static void dispose_client_socket(void *data) {
+  FREE(TCP_CLIENT_SOCKET_PICO, data);
+}
+
 static int find_first_free_client_slot(TCP_SERVER_SOCKET_PICO *server) {
   cyw43_arch_lwip_check();
   for(int i = 0; i < MAX_PENDING_CLIENTS; i++) {
@@ -206,12 +213,12 @@ static Value tcpServerHasBacklogNative(Value *receiver, int argCount, Value *arg
     // runtimeError("tcpServerAcceptNative() takes exactly 1 argument (%d given).", argCount);
     return NIL_VAL;
   }
-  if(!IS_BUFFER(args[0])) {
-    // runtimeError("tcpServerAcceptNative() argument 1 must be a buffer.");
+  if(!IS_REF(args[0])) {
+    // runtimeError("tcpServerAcceptNative() argument 1 must be a socket ref.");
     return NIL_VAL;
   }
-  ObjBuffer *socketBuffer = AS_BUFFER(args[0]);
-  TCP_SERVER_SOCKET_PICO *socket = (TCP_SERVER_SOCKET_PICO *)socketBuffer->bytes;
+  ObjRef *socketRef = AS_REF(args[0]);
+  TCP_SERVER_SOCKET_PICO *socket = (TCP_SERVER_SOCKET_PICO *)socketRef->data;
   if(socket->server_pcb == NULL) {
     // runtimeError("tcpServerAcceptNative() argument 1 is not a valid server socket.");
     return NIL_VAL;
@@ -227,12 +234,12 @@ static Value tcpServerAcceptNative(Value *receiver, int argCount, Value *args) {
     // runtimeError("tcpServerAcceptNative() takes exactly 1 argument (%d given).", argCount);
     return NIL_VAL;
   }
-  if(!IS_BUFFER(args[0])) {
+  if(!IS_REF(args[0])) {
     // runtimeError("tcpServerAcceptNative() argument 1 must be a buffer.");
     return NIL_VAL;
   }
-  ObjBuffer *socketBuffer = AS_BUFFER(args[0]);
-  TCP_SERVER_SOCKET_PICO *socket = (TCP_SERVER_SOCKET_PICO *)socketBuffer->bytes;
+  ObjRef *socketRef = AS_REF(args[0]);
+  TCP_SERVER_SOCKET_PICO *socket = (TCP_SERVER_SOCKET_PICO *)socketRef->data;
   if(socket->server_pcb == NULL) {
     // runtimeError("tcpServerAcceptNative() argument 1 is not a valid server socket.");
     return NIL_VAL;
@@ -245,9 +252,9 @@ static Value tcpServerAcceptNative(Value *receiver, int argCount, Value *args) {
     remove_client(socket, clientSocket);
     clientSocket->server = NULL; // take ownership
 
-    ObjBuffer *clientSocketBuffer = takeBuffer((uint8_t*)clientSocket, sizeof(TCP_CLIENT_SOCKET_PICO));
+    ObjRef *clientSocketRef = newRef("client-socket", clientSocket, dispose_client_socket);
     cyw43_arch_lwip_end();
-    return OBJ_VAL(clientSocketBuffer);
+    return OBJ_VAL(clientSocketRef);
   }
   cyw43_arch_lwip_end();
   return NIL_VAL;
@@ -263,8 +270,8 @@ static Value tcpServerCreateNative(Value *receiver, int argCount, Value *args) {
     return NIL_VAL;
   }
   int port = (int)AS_NUMBER(args[0]);
-  ObjBuffer *socketBuffer = newBuffer(sizeof(TCP_SERVER_SOCKET_PICO));
-  TCP_SERVER_SOCKET_PICO *socket = (TCP_SERVER_SOCKET_PICO *)socketBuffer->bytes;
+  ObjRef *socketRef = newRef("server-socket", ALLOCATE(TCP_SERVER_SOCKET_PICO, 1), dispose_server_socket);
+  TCP_SERVER_SOCKET_PICO *socket = (TCP_SERVER_SOCKET_PICO *)socketRef->data;
   memset(socket, 0, sizeof(TCP_SERVER_SOCKET_PICO));
 
   cyw43_arch_lwip_begin();
@@ -300,7 +307,7 @@ static Value tcpServerCreateNative(Value *receiver, int argCount, Value *args) {
 
   DEBUG_printf("Listening\n");
 
-  return OBJ_VAL(socketBuffer);
+  return OBJ_VAL(socketRef);
 }
 
 static Value tcpServerCloseNative(Value *receiver, int argCount, Value *args) {
@@ -308,12 +315,12 @@ static Value tcpServerCloseNative(Value *receiver, int argCount, Value *args) {
     // runtimeError("tcpServerAcceptNative() takes exactly 1 argument (%d given).", argCount);
     return NIL_VAL;
   }
-  if(!IS_BUFFER(args[0])) {
-    // runtimeError("tcpServerAcceptNative() argument 1 must be a buffer.");
+  if(!IS_REF(args[0])) {
+    // runtimeError("tcpServerAcceptNative() argument 1 must be a socket ref.");
     return NIL_VAL;
   }
-  ObjBuffer *socketBuffer = AS_BUFFER(args[0]);
-  TCP_SERVER_SOCKET_PICO *socket = (TCP_SERVER_SOCKET_PICO *)socketBuffer->bytes;
+  ObjRef *socketRef = AS_REF(args[0]);
+  TCP_SERVER_SOCKET_PICO *socket = (TCP_SERVER_SOCKET_PICO *)socketRef->data;
 
   DEBUG_printf("Closing server socket\n");
 
@@ -341,12 +348,12 @@ static Value tcpSocketHasDataNative(Value *receiver, int argCount, Value *args) 
     // runtimeError("tcpSocketReadNative() takes exactly 1 argument (%d given).", argCount);
     return NIL_VAL;
   }
-  if(!IS_BUFFER(args[0])) {
-    // runtimeError("tcpSocketReadNative() argument 1 must be a buffer.");
+  if(!IS_REF(args[0])) {
+    // runtimeError("tcpSocketReadNative() argument 1 must be a socket ref.");
     return NIL_VAL;
   }
-  ObjBuffer *socketBuffer = AS_BUFFER(args[0]);
-  TCP_CLIENT_SOCKET_PICO *socket = (TCP_CLIENT_SOCKET_PICO *)socketBuffer->bytes;
+  ObjRef *socketRef = AS_REF(args[0]);
+  TCP_CLIENT_SOCKET_PICO *socket = (TCP_CLIENT_SOCKET_PICO *)socketRef->data;
   if(socket->client_pcb == NULL) {
     // runtimeError("tcpSocketReadNative() argument 1 is not a valid client socket.");
     return NIL_VAL;
@@ -359,12 +366,12 @@ static Value tcpSocketReadNative(Value *receiver, int argCount, Value *args) {
     // runtimeError("tcpSocketReadNative() takes exactly 1 argument (%d given).", argCount);
     return NIL_VAL;
   }
-  if(!IS_BUFFER(args[0])) {
-    // runtimeError("tcpSocketReadNative() argument 1 must be a buffer.");
+  if(!IS_REF(args[0])) {
+    // runtimeError("tcpSocketReadNative() argument 1 must be a socket ref.");
     return NIL_VAL;
   }
-  ObjBuffer *socketBuffer = AS_BUFFER(args[0]);
-  TCP_CLIENT_SOCKET_PICO *socket = (TCP_CLIENT_SOCKET_PICO *)socketBuffer->bytes;
+  ObjRef *socketRef = AS_REF(args[0]);
+  TCP_CLIENT_SOCKET_PICO *socket = (TCP_CLIENT_SOCKET_PICO *)socketRef->data;
   if(socket->client_pcb == NULL) {
     // runtimeError("tcpSocketReadNative() argument 1 is not a valid client socket.");
     return NIL_VAL;
@@ -402,16 +409,16 @@ static Value tcpSocketWriteNative(Value *receiver, int argCount, Value *args) {
     // runtimeError("tcpSocketWriteNative() takes exactly 2 arguments (%d given).", argCount);
     return NIL_VAL;
   }
-  if(!IS_BUFFER(args[0])) {
-    // runtimeError("tcpSocketWriteNative() argument 1 must be a buffer.");
+  if(!IS_REF(args[0])) {
+    // runtimeError("tcpSocketWriteNative() argument 1 must be a socket ref.");
     return NIL_VAL;
   }
   if(!IS_BUFFER(args[1])) {
     // runtimeError("tcpSocketWriteNative() argument 2 must be a buffer.");
     return NIL_VAL;
   }
-  ObjBuffer *socketBuffer = AS_BUFFER(args[0]);
-  TCP_CLIENT_SOCKET_PICO *socket = (TCP_CLIENT_SOCKET_PICO *)socketBuffer->bytes;
+  ObjRef *socketRef = AS_REF(args[0]);
+  TCP_CLIENT_SOCKET_PICO *socket = (TCP_CLIENT_SOCKET_PICO *)socketRef->data;
   if(socket->client_pcb == NULL) {
     // runtimeError("tcpSocketWriteNative() argument 1 is not a valid client socket.");
     return NIL_VAL;
@@ -440,12 +447,12 @@ static Value tcpServerIsClosedNative(Value *receiver, int argCount, Value *args)
     // runtimeError("tcpServerIsClosedNative() takes exactly 1 argument (%d given).", argCount);
     return NIL_VAL;
   }
-  if(!IS_BUFFER(args[0])) {
-    // runtimeError("tcpServerIsClosedNative() argument 1 must be a buffer.");
+  if(!IS_REF(args[0])) {
+    // runtimeError("tcpServerIsClosedNative() argument 1 must be a socket ref.");
     return NIL_VAL;
   }
-  ObjBuffer *socketBuffer = AS_BUFFER(args[0]);
-  TCP_SERVER_SOCKET_PICO *socket = (TCP_SERVER_SOCKET_PICO *)socketBuffer->bytes;
+  ObjRef *socketRef = AS_REF(args[0]);
+  TCP_SERVER_SOCKET_PICO *socket = (TCP_SERVER_SOCKET_PICO *)socketRef->data;
   return BOOL_VAL(socket->is_closed);
 }
 
@@ -454,12 +461,12 @@ static Value tcpSocketIsClosedNative(Value *receiver, int argCount, Value *args)
     // runtimeError("tcpSocketIsClosedNative() takes exactly 1 argument (%d given).", argCount);
     return NIL_VAL;
   }
-  if(!IS_BUFFER(args[0])) {
-    // runtimeError("tcpSocketIsClosedNative() argument 1 must be a buffer.");
+  if(!IS_REF(args[0])) {
+    // runtimeError("tcpSocketIsClosedNative() argument 1 must be a socket ref.");
     return NIL_VAL;
   }
-  ObjBuffer *socketBuffer = AS_BUFFER(args[0]);
-  TCP_CLIENT_SOCKET_PICO *socket = (TCP_CLIENT_SOCKET_PICO *)socketBuffer->bytes;
+  ObjRef *socketRef = AS_REF(args[0]);
+  TCP_CLIENT_SOCKET_PICO *socket = (TCP_CLIENT_SOCKET_PICO *)socketRef->data;
   return BOOL_VAL(socket->is_closed);
 }
 
@@ -468,12 +475,12 @@ static Value tcpSocketCloseNative(Value *receiver, int argCount, Value *args) {
     // runtimeError("tcpSocketCloseNative() takes exactly 1 argument (%d given).", argCount);
     return NIL_VAL;
   }
-  if(!IS_BUFFER(args[0])) {
-    // runtimeError("tcpSocketCloseNative() argument 1 must be a buffer.");
+  if(!IS_REF(args[0])) {
+    // runtimeError("tcpSocketCloseNative() argument 1 must be a socket ref.");
     return NIL_VAL;
   }
-  ObjBuffer *socketBuffer = AS_BUFFER(args[0]);
-  TCP_CLIENT_SOCKET_PICO *socket = (TCP_CLIENT_SOCKET_PICO *)socketBuffer->bytes;
+  ObjRef *socketRef = AS_REF(args[0]);
+  TCP_CLIENT_SOCKET_PICO *socket = (TCP_CLIENT_SOCKET_PICO *)socketRef->data;
   if(socket->client_pcb == NULL) {
     // runtimeError("tcpSocketCloseNative() argument 1 is not a valid client socket.");
     return NIL_VAL;

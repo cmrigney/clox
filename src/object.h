@@ -18,6 +18,7 @@
 #define IS_BOUND_NATIVE(value) isObjType(value, OBJ_BOUND_NATIVE)
 #define IS_STRING(value)       isObjType(value, OBJ_STRING)
 #define IS_BUFFER(value)       isObjType(value, OBJ_BUFFER)
+#define IS_REF(value)          isObjType(value, OBJ_REF)
 
 #define AS_ARRAY(value)        ((ObjArray*)AS_OBJ(value))
 #define AS_BOUND_METHOD(value) ((ObjBoundMethod*)AS_OBJ(value))
@@ -32,6 +33,7 @@
 #define AS_STRING(value)       ((ObjString*)AS_OBJ(value))
 #define AS_CSTRING(value)      (((ObjString*)AS_OBJ(value))->chars)
 #define AS_BUFFER(value)       ((ObjBuffer*)AS_OBJ(value))
+#define AS_REF(value)          ((ObjRef*)AS_OBJ(value))
 
 typedef enum {
   OBJ_BOUND_METHOD,
@@ -45,6 +47,7 @@ typedef enum {
   OBJ_ARRAY,
   OBJ_BOUND_NATIVE,
   OBJ_BUFFER,
+  OBJ_REF,
 } ObjType;
 
 struct Obj {
@@ -88,6 +91,13 @@ typedef struct {
   int size;
   uint8_t* bytes;
 } ObjBuffer;
+
+typedef struct ObjRef {
+  Obj obj;
+  const char *description;
+  void *data;
+  void (*dispose)(void *data);
+} ObjRef;
 
 typedef struct ObjUpvalue {
   Obj obj;
@@ -141,6 +151,7 @@ ObjBoundNative* newBoundNative(Value receiver, NativeFn function, bool callsLox)
 ObjString* takeString(char* chars, int length);
 ObjBuffer* newBuffer(int size);
 ObjBuffer* takeBuffer(uint8_t* bytes, int size);
+ObjRef* newRef(const char *description, void *data, void (*dispose)(void *data));
 
 static inline bool isObjType(Value value, ObjType type) {
   return IS_OBJ(value) && AS_OBJ(value)->type == type;
