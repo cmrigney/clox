@@ -3,6 +3,7 @@ var CRNL = Buffer(Array(13, 10)).asString();
 class Pin {
   init(pin) {
     this.pin = pin;
+    this.enabled = false;
     module.__init_pin(pin);
   }
 
@@ -12,12 +13,25 @@ class Pin {
   }
 
   on() {
+    this.enabled = true;
     module.__pin_on(this.pin);
     return this;
   }
 
   off() {
+    this.enabled = false;
     module.__pin_off(this.pin);
+    return this;
+  }
+
+  toggle() {
+    this.enabled = !this.enabled;
+    if(this.enabled) {
+      module.__pin_on(this.pin);
+    }
+    else {
+      module.__pin_off(this.pin);
+    }
     return this;
   }
 }
