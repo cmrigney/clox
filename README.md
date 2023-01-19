@@ -1,7 +1,7 @@
 # Clox Compiler and VM
 
 ## Setup
-Clone the repo and checkout the git submodules.
+Clone the repo and clone the git submodules.
 ```
 git clone git@github.com:cmrigney/clox.git
 cd clox
