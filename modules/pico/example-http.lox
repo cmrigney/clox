@@ -56,5 +56,14 @@ server.use("/led", fun (req, res) {
   }
 });
 
-logln("Listening on port 8080");
-server.listen(false);
+server.listen(true);
+
+while(true) {
+  if(server.poll()) { // did work
+    pico.LEDPin.toggle();
+    pico.sleep(5);
+  }
+  else {
+    pico.lowPowerSleep(1000);
+  }
+}
