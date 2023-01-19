@@ -14,6 +14,7 @@
 #include "clox-pico-w.h"
 #endif
 #include "../clox.h"
+#include "machine.h"
 #include "autogen/pico_lib.h"
 
 static Value sleepMsNative(Value *receiver, int argCount, Value *args) {
@@ -198,6 +199,7 @@ bool registerModule_pico() {
   registerNativeMethod("sleep", sleepMsNative);
   registerNativeMethod("isW", isWNative);
   registerNativeMethod("getPicoStats", getPicoStatsNative);
+  registerNativeMethod("lowPowerSleep", powerSleepNative);
 
   registerNativeMethod("__init_pin", initPinNative);
   registerNativeMethod("__get_led_pin", getLedPinNative);

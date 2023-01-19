@@ -106,12 +106,14 @@ if(module.isW()) {
 
     poll() {
       pico.__poll_network();
+      var didWork = false;
 
       var removeServers = Array();
       var removeClients = Array();
       this.serverSockets.forEach(fun (server, idx) {
         if(server.isClosed()) {
           // Remove server
+          didWork = true;
           removeServers.push(server);
           server.onClose();
           return;
@@ -119,6 +121,7 @@ if(module.isW()) {
         if(server.hasBacklog()) {
           var socket = server.accept();
           if(socket != nil) {
+            didWork = true;
             this.clientSockets.push(socket);
             server.onAccept(socket);
           }
@@ -132,6 +135,7 @@ if(module.isW()) {
       this.clientSockets.forEach(fun (client, idx) {
         if(client.isClosed()) {
           // Remove client
+          didWork = true;
           removeClients.push(client);
           client.onClose();
           return;
@@ -139,6 +143,7 @@ if(module.isW()) {
         if(client.hasData()) {
           var data = client.read();
           if(data != nil) {
+            didWork = true;
             client.onData(data);
           }
         }
@@ -148,6 +153,7 @@ if(module.isW()) {
           return s != client;
         });
       });
+      return didWork;
     }
   }
 
@@ -312,7 +318,7 @@ if(module.isW()) {
     }
 
     poll() {
-      this.socketManager.poll();
+      return this.socketManager.poll();
     }
 
     stopListening() {
