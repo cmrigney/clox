@@ -1,5 +1,13 @@
 # Clox Compiler and VM
 
+## Setup
+Clone the repo and checkout the git submodules.
+```
+git clone git@github.com:cmrigney/clox.git
+cd clox
+git submodule update --init --recursive
+```
+
 ## Building
 
 ```
