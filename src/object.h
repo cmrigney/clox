@@ -94,6 +94,7 @@ typedef struct {
 
 typedef struct ObjRef {
   Obj obj;
+  const char *magic; // object type
   const char *description;
   void *data;
   void (*dispose)(void *data);
@@ -151,7 +152,7 @@ ObjBoundNative* newBoundNative(Value receiver, NativeFn function, bool callsLox)
 ObjString* takeString(char* chars, int length);
 ObjBuffer* newBuffer(int size);
 ObjBuffer* takeBuffer(uint8_t* bytes, int size);
-ObjRef* newRef(const char *description, void *data, void (*dispose)(void *data));
+ObjRef* newRef(const char *magic, const char *description, void *data, void (*dispose)(void *data));
 
 static inline bool isObjType(Value value, ObjType type) {
   return IS_OBJ(value) && AS_OBJ(value)->type == type;

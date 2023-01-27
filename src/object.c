@@ -141,8 +141,9 @@ ObjString* copyString(const char* chars, int length) {
   return allocateString(heapChars, length, hash);
 }
 
-ObjRef* newRef(const char *description, void *data, void (*dispose)(void *data)) {
+ObjRef* newRef(const char *magic, const char *description, void *data, void (*dispose)(void *data)) {
   ObjRef* ref = ALLOCATE_OBJ(ObjRef, OBJ_REF);
+  ref->magic = magic;
   ref->description = description;
   ref->data = data;
   ref->dispose = dispose;

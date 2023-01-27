@@ -252,7 +252,7 @@ static Value tcpServerAcceptNative(Value *receiver, int argCount, Value *args) {
     remove_client(socket, clientSocket);
     clientSocket->server = NULL; // take ownership
 
-    ObjRef *clientSocketRef = newRef("client-socket", clientSocket, dispose_client_socket);
+    ObjRef *clientSocketRef = newRef("client-socket", "client-socket", clientSocket, dispose_client_socket);
     cyw43_arch_lwip_end();
     return OBJ_VAL(clientSocketRef);
   }
@@ -270,7 +270,7 @@ static Value tcpServerCreateNative(Value *receiver, int argCount, Value *args) {
     return NIL_VAL;
   }
   int port = (int)AS_NUMBER(args[0]);
-  ObjRef *socketRef = newRef("server-socket", ALLOCATE(TCP_SERVER_SOCKET_PICO, 1), dispose_server_socket);
+  ObjRef *socketRef = newRef("server-socket", "server-socket", ALLOCATE(TCP_SERVER_SOCKET_PICO, 1), dispose_server_socket);
   TCP_SERVER_SOCKET_PICO *socket = (TCP_SERVER_SOCKET_PICO *)socketRef->data;
   memset(socket, 0, sizeof(TCP_SERVER_SOCKET_PICO));
 
