@@ -12,6 +12,21 @@ class Pin {
     return this;
   }
 
+  input() {
+    module.__pin_input(this.pin);
+    return this;
+  }
+
+  pullup() {
+    module.__pin_pull_up(this.pin);
+    return this;
+  }
+
+  pulldown() {
+    module.__pin_pull_down(this.pin);
+    return this;
+  }
+
   on() {
     this.enabled = true;
     module.__pin_on(this.pin);

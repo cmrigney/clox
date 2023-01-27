@@ -85,6 +85,63 @@ static Value pinOutputNative(Value *receiver, int argCount, Value *args) {
   return NIL_VAL;
 }
 
+static Value pinInputNative(Value *receiver, int argCount, Value *args) {
+  if(argCount != 1) {
+    // runtimeError("pinInput() takes exactly 2 arguments (%d given).", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_NUMBER(args[0])) {
+    // runtimeError("pinInput() first argument must be a number.");
+    return NIL_VAL;
+  }
+  uint pin = (uint)AS_NUMBER(args[0]);
+  #ifdef USE_PICO_W
+  if(pin == CYW43_WL_GPIO_LED_PIN) {
+    return NIL_VAL; // No dir change in this case
+  }
+  #endif
+  gpio_set_dir(pin, GPIO_IN);
+  return NIL_VAL;
+}
+
+static Value pinPullUpNative(Value *receiver, int argCount, Value *args) {
+  if(argCount != 1) {
+    // runtimeError("pinPullUpNative() takes exactly 2 arguments (%d given).", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_NUMBER(args[0])) {
+    // runtimeError("pinPullUpNative() first argument must be a number.");
+    return NIL_VAL;
+  }
+  uint pin = (uint)AS_NUMBER(args[0]);
+  #ifdef USE_PICO_W
+  if(pin == CYW43_WL_GPIO_LED_PIN) {
+    return NIL_VAL; // No dir change in this case
+  }
+  #endif
+  gpio_pull_up(pin);
+  return NIL_VAL;
+}
+
+static Value pinPullDownNative(Value *receiver, int argCount, Value *args) {
+  if(argCount != 1) {
+    // runtimeError("pinPullUpNative() takes exactly 2 arguments (%d given).", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_NUMBER(args[0])) {
+    // runtimeError("pinPullUpNative() first argument must be a number.");
+    return NIL_VAL;
+  }
+  uint pin = (uint)AS_NUMBER(args[0]);
+  #ifdef USE_PICO_W
+  if(pin == CYW43_WL_GPIO_LED_PIN) {
+    return NIL_VAL; // No dir change in this case
+  }
+  #endif
+  gpio_pull_down(pin);
+  return NIL_VAL;
+}
+
 static Value pinOnNative(Value *receiver, int argCount, Value *args) {
   if(argCount != 1) {
     // runtimeError("pinOutput() takes exactly 2 arguments (%d given).", argCount);
@@ -101,6 +158,7 @@ static Value pinOnNative(Value *receiver, int argCount, Value *args) {
     return NIL_VAL; // No dir change in this case
   }
   #endif
+  gpio_set_function(pin, GPIO_FUNC_SIO);
   gpio_put(pin, 1);
   return NIL_VAL;
 }
@@ -121,6 +179,7 @@ static Value pinOffNative(Value *receiver, int argCount, Value *args) {
     return NIL_VAL; // No dir change in this case
   }
   #endif
+  gpio_set_function(pin, GPIO_FUNC_SIO);
   gpio_put(pin, 0);
   return NIL_VAL;
 }
@@ -204,6 +263,9 @@ bool registerModule_pico() {
   registerNativeMethod("__init_pin", initPinNative);
   registerNativeMethod("__get_led_pin", getLedPinNative);
   registerNativeMethod("__pin_output", pinOutputNative);
+  registerNativeMethod("__pin_input", pinInputNative);
+  registerNativeMethod("__pin_pull_up", pinPullUpNative);
+  registerNativeMethod("__pin_pull_down", pinPullDownNative);
   registerNativeMethod("__pin_on", pinOnNative);
   registerNativeMethod("__pin_off", pinOffNative);
   char *code = strndup(pico_module_bundle, pico_module_bundle_len);
