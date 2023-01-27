@@ -52,7 +52,11 @@
     "bundle_lox.h": "c",
     "tusb.h": "c",
     "debug.h": "c",
-    "syscfg.h": "c"
+    "syscfg.h": "c",
+    "typeinfo": "c",
+    "lora.h": "c",
+    "spi.h": "c",
+    "sync.h": "c"
   },
   "cmake.configureOnOpen": true,
   "cortex-debug.openocdPath": "/Users/crigney/Development/pico/openocd/src/openocd"

@@ -28,6 +28,9 @@ static LinkedModule linkedModules[] = {
   #endif
   #ifdef PICO_MODULE
   {"pico", registerModule_pico},
+  #ifdef LORA_MODULE // only supported in pico right now
+  {"lora_radio", registerModule_lora_radio},
+  #endif
   #endif
   {NULL, NULL}
 };

@@ -1,0 +1,40 @@
+class RF95 {
+  init(resetPinNum, interruptPinNum) {
+    this.rf95 = module.__create_rf95(resetPinNum, interruptPinNum);
+  }
+  setTxtPower(power) {
+    return module.__set_tx_power_rf95(this.rf95, power);
+  }
+  setFrequency(freq) {
+    return module.__set_frequency_rf95(this.rf95, freq);
+  }
+  setThisAddress(address) {
+    return module.__set_this_address_rf95(this.rf95, address);
+  }
+  setHeaderTo(to) {
+    return module.__set_header_to_rf95(this.rf95, to);
+  }
+  setHeaderFrom(from) {
+    return module.__set_header_from_rf95(this.rf95, from);
+  }
+  available() {
+    return module.__available_rf95(this.rf95);
+  }
+  recv() {
+    return module.__recv_rf95(this.rf95);
+  }
+  send(buffer) {
+    return module.__send_rf95(this.rf95, buffer);
+  }
+  waitForPacketSent() {
+    return module.__wait_for_packet_sent_rf95(this.rf95);
+  }
+  waitForPacketSentWithTimeout(timeout) {
+    return module.__wait_for_packet_sent_rf95(this.rf95, timeout);
+  }
+  disable() {
+    return module.__disable_rf95(this.rf95);
+  }
+}
+
+module.RF95 = RF95;

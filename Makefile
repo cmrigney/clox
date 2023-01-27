@@ -25,7 +25,7 @@ else
 endif
 
 build-pico:
-	PICO_SDK_PATH=./vendor/pico-sdk MODULES=pico make build
+	PICO_SDK_PATH=./vendor/pico-sdk MODULES=pico,lora make build
 
 build-picow:
 	PICO_BOARD=pico_w USE_PICO_W=true make build-pico

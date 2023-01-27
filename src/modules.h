@@ -25,6 +25,10 @@ void registerLoxCode(const char *source);
 #endif
 #ifdef PICO_MODULE
 #include "pico/clox-pico.h"
+#ifdef LORA_MODULE
+#include "lora_radio/lora.h"
 #endif
+#endif
+
 
 #endif

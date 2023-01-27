@@ -35,7 +35,11 @@ set(PIPE_CMD "cat") # pass through
 if("$ENV{MODULES}" MATCHES "pico")
   set(PIPE_CMD sed "'s/unsigned char/#include <pico\\/platform.h>\\nconst unsigned char __in_flash()/g'")
   include(modules/pico/pico-module.cmake)
+  if("$ENV{MODULES}" MATCHES "lora") # only supported for pico currently
+    include(modules/lora_radio/lora-module.cmake)
+  endif()
 endif()
+
 
 if(DEFINED ENV{EMCC_JS}) 
   target_link_libraries(clox -lnodefs.js)
