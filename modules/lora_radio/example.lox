@@ -1,0 +1,27 @@
+var pico = systemImport("pico");
+var lora = systemImport("lora_radio");
+
+pico.LEDPin.on();
+
+var ResetPinNum = 20;
+var InterruptPinNum = 21;
+var radio = lora.RF95(ResetPinNum, InterruptPinNum);
+if (!radio.isDetected()) {
+  logln("Radio not detected");
+  pico.LEDPin.off();
+  while(true) { }
+}
+logln("Radio detected");
+
+radio.send(Buffer("Hello World!"));
+// radio.waitForPacketSent();
+logln("Packet sent");
+
+while(true) {
+  if(radio.available()) {
+    var packet = radio.recv();
+    logln("Packet received: " + packet.asString());
+  }
+  pico.sleep(0.1);
+}
+

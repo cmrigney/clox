@@ -2,6 +2,9 @@ class RF95 {
   init(resetPinNum, interruptPinNum) {
     this.rf95 = module.__create_rf95(resetPinNum, interruptPinNum);
   }
+  isDetected() {
+    return this.rf95 != nil;
+  }
   setTxtPower(power) {
     return module.__set_tx_power_rf95(this.rf95, power);
   }

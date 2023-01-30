@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
@@ -56,7 +57,7 @@ static uint8_t spiWrite(RF95 *rf95, uint8_t reg, uint8_t val)
   ATOMIC_BLOCK_START;
   cs_select(rf95);
   spi_write_read_blocking(spi_default, data, dest, 2);
-  sleep_us(1);
+  busy_wait_us(1);
   cs_deselect(rf95);
   ATOMIC_BLOCK_END;
   return dest[0]; // status
@@ -82,6 +83,7 @@ static uint8_t spiRead(RF95 *rf95, uint8_t reg)
   data[0] = reg & ~RH_SPI_WRITE_MASK;
   data[1] = 0;
   uint8_t dest[2];
+  memset(dest, 0, 2);
   ATOMIC_BLOCK_START;
   cs_select(rf95);
   spi_write_read_blocking(spi_default, data, dest, 2);
@@ -105,6 +107,13 @@ static uint8_t spiBurstRead(RF95 *rf95, uint8_t reg, uint8_t *dest, uint8_t len)
   return status;
 }
 
+static void rf95_reset(RF95 *rf95) {
+  gpio_put(rf95->reset_pin, 0);
+  sleep_us(100);
+  gpio_put(rf95->reset_pin, 1);
+  sleep_ms(5);
+}
+
 RF95 *rf95_create(uint reset_pin, uint interrupt_pin)
 {
   RF95 *rf95 = ALLOCATE(RF95, 1);
@@ -118,18 +127,36 @@ RF95 *rf95_create(uint reset_pin, uint interrupt_pin)
   gpio_init(rf95->cs_pin);
 
   spi_init(spi_default, 1000 * 1000); // 1 Mhz
+
+  // Set SPI format
+  spi_set_format(spi_default,   // SPI instance
+                  8,      // Number of bits per transfer
+                  0,      // Polarity (CPOL)
+                  0,      // Phase (CPHA)
+                  SPI_MSB_FIRST);
+
   gpio_set_function(PICO_DEFAULT_SPI_RX_PIN, GPIO_FUNC_SPI);
   gpio_set_function(PICO_DEFAULT_SPI_SCK_PIN, GPIO_FUNC_SPI);
   gpio_set_function(PICO_DEFAULT_SPI_TX_PIN, GPIO_FUNC_SPI);
   // TODO is it ok to control via hardware? See https://forums.raspberrypi.com/viewtopic.php?t=309859
   // gpio_set_function(PICO_DEFAULT_SPI_CSN_PIN, GPIO_FUNC_SPI);
-  gpio_set_function(rf95->cs_pin, GPIO_FUNC_SIO);
 
   gpio_set_dir(rf95->cs_pin, GPIO_OUT);
-  
+  gpio_set_dir(rf95->reset_pin, GPIO_OUT);
+
   cs_deselect(rf95);
 
+  rf95_reset(rf95);
+
   sleep_ms(100);
+
+  uint8_t version = spiRead(rf95, RH_RF95_REG_42_VERSION);
+  if(version != 18) {
+    perror("Failed to find rfm9x with expected version\n");
+    spi_deinit(spi_default);
+    FREE(RF95, rf95);
+    return NULL;
+  }
 
   // Set sleep mode, so we can also set LORA mode:
   spiWrite(rf95, RH_RF95_REG_01_OP_MODE, RH_RF95_MODE_SLEEP | RH_RF95_LONG_RANGE_MODE);
@@ -137,6 +164,7 @@ RF95 *rf95_create(uint reset_pin, uint interrupt_pin)
   // Check we are in sleep mode, with LORA set
   if (spiRead(rf95, RH_RF95_REG_01_OP_MODE) != (RH_RF95_MODE_SLEEP | RH_RF95_LONG_RANGE_MODE))
   {
+    perror("Failed to configure rfm9x module\n");
     spi_deinit(spi_default);
     FREE(RF95, rf95);
     return NULL; // No device present?
