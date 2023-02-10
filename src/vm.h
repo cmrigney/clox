@@ -66,6 +66,7 @@ void push(Value value);
 Value pop();
 Value peek(int distance);
 Value callLoxCode(const char* name, Value *receiver, int argCount, Value *args);
+void mutateConcatenate();
 void concatenate();
 bool callModule(ObjClosure *closure, int argCount);
 ObjInstance *createObjectInstance();

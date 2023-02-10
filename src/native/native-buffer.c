@@ -161,8 +161,8 @@ Value buffer_append(Value *receiver, int argCount, Value* args) {
   }
   ObjBuffer *buffer = AS_BUFFER(*receiver);
   ObjBuffer *other = AS_BUFFER(args[0]);
-  buffer->bytes = GROW_ARRAY(uint8_t, buffer->bytes, buffer->size, buffer->size + other->size);
-  memcpy(buffer->bytes + buffer->size, other->bytes, other->size);
-  buffer->size += other->size;
-  return OBJ_VAL(buffer);
+  push(OBJ_VAL(buffer));
+  push(OBJ_VAL(other));
+  mutateConcatenate();
+  return pop();
 }

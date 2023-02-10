@@ -10,6 +10,7 @@
 #include "lwip/tcp.h"
 
 #define MAX_PENDING_CLIENTS 5
+#define MAX_PACKETS 5
 #define POLL_TIME_S 10
 #define DEBUG_printf
 
@@ -18,7 +19,7 @@ typedef struct TCP_SERVER_SOCKET_PICO_ TCP_SERVER_SOCKET_PICO_;
 typedef struct TCP_CLIENT_SOCKET_PICO_ {
   TCP_SERVER_SOCKET_PICO_ *server; // If NULL, then also designates owned by VM
   struct tcp_pcb *client_pcb;
-  struct pbuf *recv_packet;
+  struct pbuf *recv_packet[MAX_PACKETS];
   bool is_closed;
 } TCP_CLIENT_SOCKET_PICO;
 
@@ -33,6 +34,27 @@ static void dispose_server_socket(void *data) {
 }
 static void dispose_client_socket(void *data) {
   FREE(TCP_CLIENT_SOCKET_PICO, data);
+}
+
+static int find_free_packet_slot(TCP_CLIENT_SOCKET_PICO *client) {
+  cyw43_arch_lwip_check();
+  for(int i = 0; i < MAX_PACKETS; i++) {
+    if(client->recv_packet[i] == NULL) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+static struct pbuf *get_packet(TCP_CLIENT_SOCKET_PICO *client) {
+  cyw43_arch_lwip_check();
+  struct pbuf *first = client->recv_packet[0];
+  // shift left
+  for(int i = 0; i < MAX_PACKETS - 1; i++) {
+    client->recv_packet[i] = client->recv_packet[i+1];
+  }
+  client->recv_packet[MAX_PACKETS - 1] = NULL;
+  return first;
 }
 
 static int find_first_free_client_slot(TCP_SERVER_SOCKET_PICO *server) {
@@ -171,7 +193,12 @@ static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, er
 
   DEBUG_printf("Received data from client\n");
 
-  clientSocket->recv_packet = p;
+  int slot = find_free_packet_slot(clientSocket);
+  if(slot == -1) {
+    DEBUG_printf("No free slots for packet\n");
+    return ERR_MEM;
+  }
+  clientSocket->recv_packet[slot] = p;
   return ERR_OK;
 }
 
@@ -358,7 +385,7 @@ static Value tcpSocketHasDataNative(Value *receiver, int argCount, Value *args) 
     // runtimeError("tcpSocketReadNative() argument 1 is not a valid client socket.");
     return NIL_VAL;
   }
-  return BOOL_VAL(socket->recv_packet != NULL);
+  return BOOL_VAL(find_free_packet_slot(socket) != 0);
 }
 
 static Value tcpSocketReadNative(Value *receiver, int argCount, Value *args) {
@@ -378,25 +405,27 @@ static Value tcpSocketReadNative(Value *receiver, int argCount, Value *args) {
   }
   cyw43_arch_lwip_begin();
   DEBUG_printf("Attemping read\n");
-  if(socket->recv_packet != NULL) {
-    ObjBuffer *buffer = NULL;
-    if (socket->recv_packet->tot_len > 0) {
-      buffer = newBuffer((int)socket->recv_packet->tot_len);
-      DEBUG_printf("Reading data %hu\n", socket->recv_packet->tot_len);
+  if(find_free_packet_slot(socket) != 0) { // has packet
+    struct pbuf *packet;
+    ObjBuffer *buffer = newBuffer(0);
+    push(OBJ_VAL(buffer));
+    while((packet = get_packet(socket)) != NULL) {
+      if (packet->tot_len > 0) {
+        ObjBuffer *addBuffer = newBuffer((int)packet->tot_len);
+        DEBUG_printf("Reading data %hu\n", packet->tot_len);
       // Receive the buffer
-      pbuf_copy_partial(socket->recv_packet, buffer->bytes, socket->recv_packet->tot_len, 0);
-      tcp_recved(socket->client_pcb, socket->recv_packet->tot_len);
+        pbuf_copy_partial(packet, addBuffer->bytes, packet->tot_len, 0);
+        tcp_recved(socket->client_pcb, packet->tot_len);
+
+        push(OBJ_VAL(addBuffer));
+        mutateConcatenate();
     } else {
-      DEBUG_printf("Invalid tot_len: %hu\n", socket->recv_packet->tot_len);
+        DEBUG_printf("Invalid tot_len: %hu\n", packet->tot_len);
     }
-    pbuf_free(socket->recv_packet);
-    socket->recv_packet = NULL;
+      pbuf_free(packet);
+    }
     cyw43_arch_lwip_end();
-    if(buffer != NULL) {
-      return OBJ_VAL(buffer);
-    } else {
-      return OBJ_VAL(newBuffer(0));
-    }
+    return pop();
   } else {
     DEBUG_printf("No receive packet\n");
   }

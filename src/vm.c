@@ -404,6 +404,17 @@ static bool isFalsey(Value value) {
   return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
 }
 
+void mutateConcatenate() {
+  ObjBuffer* other = AS_BUFFER(peek(0));
+  ObjBuffer* buffer = AS_BUFFER(peek(1));
+
+  buffer->bytes = GROW_ARRAY(uint8_t, buffer->bytes, buffer->size, buffer->size + other->size);
+  memcpy(buffer->bytes + buffer->size, other->bytes, other->size);
+  buffer->size += other->size;
+
+  pop();
+}
+
 void concatenate() {
   ObjString* b = AS_STRING(peek(0));
   ObjString* a = AS_STRING(peek(1));
