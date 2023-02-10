@@ -8,11 +8,15 @@
 #include "pico/cyw43_arch.h"
 #include "lwip/pbuf.h"
 #include "lwip/tcp.h"
+#include "dhcpserver/dhcpserver.h"
 
 #define MAX_PENDING_CLIENTS 5
 #define MAX_PACKETS 5
 #define POLL_TIME_S 10
 #define DEBUG_printf
+
+static dhcp_server_t dhcp_server;
+static volatile bool dhcp_inited = false;
 
 typedef struct TCP_SERVER_SOCKET_PICO_ TCP_SERVER_SOCKET_PICO_;
 
@@ -120,6 +124,13 @@ static void maybe_free_client(TCP_CLIENT_SOCKET_PICO *client) {
   }
 }
 
+static void cleanup_dhcpserver() {
+  if(dhcp_inited) {
+    dhcp_server_deinit(&dhcp_server);
+    dhcp_inited = false;
+  }
+}
+
 static Value connectToAPNative(Value *receiver, int argCount, Value *args) {
   if(argCount != 2 && argCount != 3) {
     // runtimeError("connectToAPNative() takes exactly 2 arguments (%d given).", argCount);
@@ -134,11 +145,13 @@ static Value connectToAPNative(Value *receiver, int argCount, Value *args) {
     return NIL_VAL;
   }
 
+  cleanup_dhcpserver();
+
   char *ssid = AS_CSTRING(args[0]);
   char *password = AS_CSTRING(args[1]);
 
   cyw43_arch_enable_sta_mode();
-  cyw43_wifi_pm(&cyw43_state, CYW43_NO_POWERSAVE_MODE);
+  // cyw43_wifi_pm(&cyw43_state, CYW43_NO_POWERSAVE_MODE);
 
   if(argCount == 3 && IS_NUMBER(args[2])) {
     int timeout = (int)AS_NUMBER(args[2]);
@@ -155,6 +168,35 @@ static Value connectToAPNative(Value *receiver, int argCount, Value *args) {
   }
 }
 
+static Value createAPNative(Value *receiver, int argCount, Value *args) {
+  if(argCount != 2) {
+    // runtimeError("createAPNative() takes exactly 2 arguments (%d given).", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_STRING(args[0])) {
+    // runtimeError("createAPNative() argument 1 must be a string.");
+    return NIL_VAL;
+  }
+  if(!IS_STRING(args[1])) {
+    // runtimeError("createAPNative() argument 2 must be a string.");
+    return NIL_VAL;
+  }
+
+  cleanup_dhcpserver();
+
+  char *ssid = AS_CSTRING(args[0]);
+  char *password = AS_CSTRING(args[1]);
+
+  cyw43_arch_enable_ap_mode(ssid, password, CYW43_AUTH_WPA2_AES_PSK);
+
+  ip4_addr_t gw, mask;
+  IP4_ADDR(&gw, 192, 168, 4, 1);
+  IP4_ADDR(&mask, 255, 255, 255, 0);
+
+  dhcp_server_init(&dhcp_server, &gw, &mask);
+  dhcp_inited = true;
+  return BOOL_VAL(true);
+}
 
 static void tcp_server_err(void *arg, err_t err) {
   TCP_CLIENT_SOCKET_PICO *clientSocket = (TCP_CLIENT_SOCKET_PICO*)arg;
@@ -413,15 +455,15 @@ static Value tcpSocketReadNative(Value *receiver, int argCount, Value *args) {
       if (packet->tot_len > 0) {
         ObjBuffer *addBuffer = newBuffer((int)packet->tot_len);
         DEBUG_printf("Reading data %hu\n", packet->tot_len);
-      // Receive the buffer
+        // Receive the buffer
         pbuf_copy_partial(packet, addBuffer->bytes, packet->tot_len, 0);
         tcp_recved(socket->client_pcb, packet->tot_len);
 
         push(OBJ_VAL(addBuffer));
         mutateConcatenate();
-    } else {
+      } else {
         DEBUG_printf("Invalid tot_len: %hu\n", packet->tot_len);
-    }
+      }
       pbuf_free(packet);
     }
     cyw43_arch_lwip_end();
@@ -533,6 +575,7 @@ static Value pollNetworkNative(Value *receiver, int argCount, Value *args) {
 
 void registerPicoWFunctions() {
   registerNativeMethod("connectToAP", connectToAPNative);
+  registerNativeMethod("createAP", createAPNative);
   registerNativeMethod("__tcp_server_create", tcpServerCreateNative);
   registerNativeMethod("__tcp_server_has_backlog", tcpServerHasBacklogNative);
   registerNativeMethod("__tcp_server_accept", tcpServerAcceptNative);

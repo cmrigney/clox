@@ -1,6 +1,6 @@
 target_sources(clox PRIVATE ${CMAKE_CURRENT_LIST_DIR}/main.c ${CMAKE_CURRENT_LIST_DIR}/machine.c)
 if(DEFINED ENV{USE_PICO_W})
-  target_sources(clox PRIVATE ${CMAKE_CURRENT_LIST_DIR}/clox-pico-w.c)
+  target_sources(clox PRIVATE ${CMAKE_CURRENT_LIST_DIR}/clox-pico-w.c ${CMAKE_CURRENT_LIST_DIR}/dhcpserver/dhcpserver.c)
 endif()
 
 # initialize the Raspberry Pi Pico SDK
