@@ -5,7 +5,7 @@ class RF95 {
   isDetected() {
     return this.rf95 != nil;
   }
-  setTxtPower(power) {
+  setTxPower(power) {
     return module.__set_tx_power_rf95(this.rf95, power);
   }
   setFrequency(freq) {
