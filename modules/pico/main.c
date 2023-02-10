@@ -245,6 +245,14 @@ static Value getPicoStatsNative(Value *receiver, int argCount, Value *args) {
   return pop();
 }
 
+static Value exitNative(Value *receiver, int argCount, Value *args) {
+  #ifdef USE_PICO_W
+  cyw43_arch_deinit();
+  #endif
+  exit(0);
+  return NIL_VAL;
+}
+
 bool registerModule_pico() {
   stdio_init_all();
   // sleep_ms(5000);
@@ -256,6 +264,7 @@ bool registerModule_pico() {
   registerPicoWFunctions();
   #endif
   registerNativeMethod("sleep", sleepMsNative);
+  registerNativeMethod("exit", exitNative);
   registerNativeMethod("isW", isWNative);
   registerNativeMethod("getPicoStats", getPicoStatsNative);
   registerNativeMethod("lowPowerSleep", powerSleepNative);
