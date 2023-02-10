@@ -9,7 +9,7 @@ var radio = lora.RF95(ResetPinNum, InterruptPinNum);
 if (!radio.isDetected()) {
   logln("Radio not detected");
   pico.LEDPin.off();
-  while(true) { }
+  pico.exit();
 }
 logln("Radio detected");
 
