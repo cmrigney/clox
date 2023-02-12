@@ -10,8 +10,16 @@
 #include "vm.h"
 #include "memory.h"
 
+#ifdef PICO_MODULE
+#include <pico/stdlib.h>
+#endif
+
 Value clockNative(Value *receiver, int argCount, Value* args) {
+  #ifdef PICO_MODULE
+  return NUMBER_VAL((double)to_us_since_boot(get_absolute_time()) / 1000000.0);
+  #else
   return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
+  #endif
 }
 
 Value parseRecurse(struct json_value_s *root) {
