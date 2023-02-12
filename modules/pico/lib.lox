@@ -4,17 +4,29 @@ class Pin {
   init(pin) {
     this.pin = pin;
     this.enabled = false;
+    this.mode = nil;
     module.__init_pin(pin);
   }
 
   output() {
+    this.mode = "output";
+    this.enabled = false;
     module.__pin_output(this.pin);
     return this;
   }
 
   input() {
+    this.mode = "input";
     module.__pin_input(this.pin);
     return this;
+  }
+
+  read() {
+    if(this.mode != "input") {
+      logln("Pin is not in input mode");
+      return nil;
+    }
+    return module.__pin_read(this.pin);
   }
 
   pullup() {
@@ -28,18 +40,30 @@ class Pin {
   }
 
   on() {
+    if(this.mode != "output") {
+      logln("Pin is not in output mode");
+      return nil;
+    }
     this.enabled = true;
     module.__pin_on(this.pin);
     return this;
   }
 
   off() {
+    if(this.mode != "output") {
+      logln("Pin is not in output mode");
+      return nil;
+    }
     this.enabled = false;
     module.__pin_off(this.pin);
     return this;
   }
 
   toggle() {
+    if(this.mode != "output") {
+      logln("Pin is not in output mode");
+      return nil;
+    }
     this.enabled = !this.enabled;
     if(this.enabled) {
       module.__pin_on(this.pin);

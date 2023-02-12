@@ -104,6 +104,24 @@ static Value pinInputNative(Value *receiver, int argCount, Value *args) {
   return NIL_VAL;
 }
 
+static Value pinReadNative(Value *receiver, int argCount, Value *args) {
+  if(argCount != 1) {
+    // runtimeError("pinGet() takes exactly 2 arguments (%d given).", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_NUMBER(args[0])) {
+    // runtimeError("pinGet() first argument must be a number.");
+    return NIL_VAL;
+  }
+  uint pin = (uint)AS_NUMBER(args[0]);
+  #ifdef USE_PICO_W
+  if(pin == CYW43_WL_GPIO_LED_PIN) {
+    return NIL_VAL;
+  }
+  #endif
+  return BOOL_VAL(gpio_get(pin));
+}
+
 static Value pinPullUpNative(Value *receiver, int argCount, Value *args) {
   if(argCount != 1) {
     // runtimeError("pinPullUpNative() takes exactly 2 arguments (%d given).", argCount);
@@ -273,6 +291,7 @@ bool registerModule_pico() {
   registerNativeMethod("__get_led_pin", getLedPinNative);
   registerNativeMethod("__pin_output", pinOutputNative);
   registerNativeMethod("__pin_input", pinInputNative);
+  registerNativeMethod("__pin_read", pinReadNative);
   registerNativeMethod("__pin_pull_up", pinPullUpNative);
   registerNativeMethod("__pin_pull_down", pinPullDownNative);
   registerNativeMethod("__pin_on", pinOnNative);
