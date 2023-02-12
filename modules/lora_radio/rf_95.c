@@ -1,3 +1,4 @@
+// Adapted from RadioHead library, should be compatible.
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
