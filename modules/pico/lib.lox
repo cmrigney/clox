@@ -75,7 +75,19 @@ class Pin {
   }
 }
 
+class AnalogPin {
+  init(pin) {
+    this.pin = pin;
+    module.__init_analog_pin(pin);
+  }
+
+  read() {
+    return module.__read_analog_pin(this.pin);
+  }
+}
+
 module.Pin = Pin;
+module.AnalogPin = AnalogPin;
 var ledPin = module.__get_led_pin();
 if(ledPin != nil) {
   module.LEDPin = Pin(ledPin).output();
