@@ -1,0 +1,28 @@
+class Screen {
+  test() {
+    module.__test();
+  }
+  setBacklight(value) {
+    module.__set_backlight(value);
+  }
+  clear() {
+    module.__clear();
+  }
+  createPen(red, green, blue) {
+    return module.__create_pen(red, green, blue);
+  }
+  setPen(pen) {
+    module.__set_pen(pen);
+  }
+  setThickness(thickness) {
+    module.__set_thickness(thickness);
+  }
+  text(text, x, y) {
+    module.__text(text, x, y);
+  }
+  update() {
+    module.__update();
+  }
+}
+
+module.Screen = Screen;

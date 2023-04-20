@@ -56,7 +56,11 @@
     "typeinfo": "c",
     "lora.h": "c",
     "spi.h": "c",
-    "sync.h": "c"
+    "sync.h": "c",
+    "cstdlib": "cpp",
+    "__split_buffer": "cpp",
+    "__tree": "cpp",
+    "map": "cpp"
   },
   "cmake.configureOnOpen": true,
   "cortex-debug.openocdPath": "/Users/crigney/Development/pico/openocd/src/openocd"
