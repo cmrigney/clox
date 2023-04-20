@@ -4,3 +4,6 @@
 [submodule "vendor/pico-sdk"]
 	path = vendor/pico-sdk
 	url = git@github.com:raspberrypi/pico-sdk.git
+[submodule "vendor/pimoroni-pico"]
+	path = vendor/pimoroni-pico
+	url = git@github.com:pimoroni/pimoroni-pico.git
