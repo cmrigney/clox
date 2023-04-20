@@ -466,7 +466,7 @@ bool rf95_waitPacketSent(RF95 *rf95)
 
 bool rf95_waitPacketSentTimeout(RF95 *rf95, uint16_t timeout)
 {
-  unsigned long starttime = clock();
+  unsigned long starttime = millis();
   while ((millis() - starttime) < timeout)
   {
     if (rf95->mode != RHModeTx) // Any previous transmit finished?
