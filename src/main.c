@@ -74,11 +74,16 @@ static void runBytes(const unsigned char *bytes, unsigned int length) {
   if (result == INTERPRET_RUNTIME_ERROR) exit(70);
 }
 
-static void runFile(const char* path) {
+static void runFile(const char* path, bool validateOnly) {
   char* source = readFile(path);
   strcpy(vm.scriptName, path);
 
-  InterpretResult result = interpret(source);
+  InterpretResult result;
+  if(validateOnly) {
+    result = validate(source);
+  } else {
+    result = interpret(source);
+  }
   free(source); 
   if (result == INTERPRET_COMPILE_ERROR) exit(65);
   if (result == INTERPRET_RUNTIME_ERROR) exit(70);
@@ -113,7 +118,11 @@ int main(int argc, const char* argv[]) {
     repl();
   } else if (argc == 2) {
     setupStdLib();
-    runFile(argv[1]);
+    runFile(argv[1], false);
+  } else if(argc == 3 && strcmp(argv[1], "validate") == 0) {
+    setupStdLib();
+    runFile(argv[2], true);
+    fprintf(stdout, "%s is valid\n", argv[2]);
   } else {
     fprintf(stderr, "Usage: clox [path]\n");
     exit(64);

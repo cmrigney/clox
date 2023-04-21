@@ -804,3 +804,9 @@ InterpretResult interpret(const char* source) {
 
   return run();
 }
+
+InterpretResult validate(const char* source) {
+  ObjFunction* function = compile(source);
+  if (function == NULL) return INTERPRET_COMPILE_ERROR;
+  return INTERPRET_OK;
+}
