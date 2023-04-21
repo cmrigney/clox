@@ -69,9 +69,10 @@ add_custom_target(
 add_dependencies(clox genstdlib)
 
 if(DEFINED LOX_BUNDLE)
+  get_filename_component(LOX_BUNDLE_PATH "${LOX_BUNDLE}" REALPATH)
   add_custom_target(
     genbundle ALL
-    COMMAND mkdir -p ${CMAKE_CURRENT_SOURCE_DIR}/autogen && xxd -i -n exec_bundle ${CMAKE_CURRENT_SOURCE_DIR}/${LOX_BUNDLE} | ${PIPE_CMD} > ${CMAKE_CURRENT_SOURCE_DIR}/autogen/bundle_lox.h
+    COMMAND mkdir -p ${CMAKE_CURRENT_SOURCE_DIR}/autogen && xxd -i -n exec_bundle ${LOX_BUNDLE_PATH} | ${PIPE_CMD} > ${CMAKE_CURRENT_SOURCE_DIR}/autogen/bundle_lox.h
     BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/autogen/bundle_lox.h
     COMMENT "Generating Lox Bundle"
   )
