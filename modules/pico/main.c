@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include "pico/stdlib.h"
+#include "hardware/adc.h"
 #ifdef PICO_TARGET_STDIO_USB
 #include "tusb.h"
 #endif
@@ -16,6 +17,18 @@
 #include "../clox.h"
 #include "machine.h"
 #include "autogen/pico_lib.h"
+
+#define ADC_VREF 3.3f
+#define ADC_RANGE (1 << 12)
+#define ADC_CONVERT (ADC_VREF / (ADC_RANGE - 1))
+
+static void setup_adc() {
+  static bool adc_ready = false;
+  if(!adc_ready) {
+    adc_init();
+    adc_ready = true;
+  }
+}
 
 static Value sleepMsNative(Value *receiver, int argCount, Value *args) {
   if(argCount != 1) {
@@ -120,6 +133,35 @@ static Value pinReadNative(Value *receiver, int argCount, Value *args) {
   }
   #endif
   return BOOL_VAL(gpio_get(pin));
+}
+
+static Value pin_init_analog(Value *receiver, int argCount, Value *args) {
+  if(argCount != 1) {
+    // runtimeError("pin_init_analog() takes exactly 1 argument (%d given).", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_NUMBER(args[0])) {
+    // runtimeError("pin_init_analog() argument must be a number.");
+    return NIL_VAL;
+  }
+  uint pin = (uint)AS_NUMBER(args[0]);
+  setup_adc();
+  adc_gpio_init(pin);
+  return NIL_VAL;
+}
+
+static Value pin_read_analog(Value *receiver, int argCount, Value *args) {
+  if(argCount != 1) {
+    // runtimeError("pin_read_analog() takes exactly 1 argument (%d given).", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_NUMBER(args[0])) {
+    // runtimeError("pin_read_analog() argument must be a number.");
+    return NIL_VAL;
+  }
+  uint pin = (uint)AS_NUMBER(args[0]);
+  adc_select_input(pin - 26);
+  return NUMBER_VAL((double)adc_read() * ADC_CONVERT);
 }
 
 static Value pinPullUpNative(Value *receiver, int argCount, Value *args) {
@@ -296,6 +338,8 @@ bool registerModule_pico() {
   registerNativeMethod("__pin_pull_down", pinPullDownNative);
   registerNativeMethod("__pin_on", pinOnNative);
   registerNativeMethod("__pin_off", pinOffNative);
+  registerNativeMethod("__init_analog_pin", pin_init_analog);
+  registerNativeMethod("__read_analog_pin", pin_read_analog);
   char *code = strndup(pico_module_bundle, pico_module_bundle_len);
   registerLoxCode(code);
   free(code);
