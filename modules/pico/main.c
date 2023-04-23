@@ -98,6 +98,25 @@ static Value pinOutputNative(Value *receiver, int argCount, Value *args) {
   return NIL_VAL;
 }
 
+static Value pinSetDriveStrength(Value *receiver, int argCount, Value *args) {
+  if(argCount != 2) {
+    // runtimeError("pinSetDriveStrength() takes exactly 2 arguments (%d given).", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_NUMBER(args[0])) {
+    // runtimeError("pinSetDriveStrength() first argument must be a number.");
+    return NIL_VAL;
+  }
+  if(!IS_NUMBER(args[1])) {
+    // runtimeError("pinSetDriveStrength() second argument must be a number.");
+    return NIL_VAL;
+  }
+  uint pin = (uint)AS_NUMBER(args[0]);
+  uint strength = (uint)AS_NUMBER(args[1]);
+  gpio_set_drive_strength(pin, strength);
+  return NIL_VAL;
+}
+
 static Value pinInputNative(Value *receiver, int argCount, Value *args) {
   if(argCount != 1) {
     // runtimeError("pinInput() takes exactly 2 arguments (%d given).", argCount);
@@ -332,6 +351,7 @@ bool registerModule_pico() {
   registerNativeMethod("__init_pin", initPinNative);
   registerNativeMethod("__get_led_pin", getLedPinNative);
   registerNativeMethod("__pin_output", pinOutputNative);
+  registerNativeMethod("__pin_set_drive_strength", pinSetDriveStrength);
   registerNativeMethod("__pin_input", pinInputNative);
   registerNativeMethod("__pin_read", pinReadNative);
   registerNativeMethod("__pin_pull_up", pinPullUpNative);

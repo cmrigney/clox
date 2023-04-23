@@ -39,6 +39,11 @@ class Pin {
     return this;
   }
 
+  setDriveStrength(strength) {
+    module.__pin_set_drive_strength(this.pin, strength);
+    return this;
+  }
+
   on() {
     if(this.mode != "output") {
       logln("Pin is not in output mode");
@@ -85,6 +90,12 @@ class AnalogPin {
     return module.__read_analog_pin(this.pin);
   }
 }
+
+// from pico docs
+module.DRIVE_STRENGTH_2MA = 0;
+module.DRIVE_STRENGTH_4MA = 1;
+module.DRIVE_STRENGTH_8MA = 2;
+module.DRIVE_STRENGTH_12MA = 3;
 
 module.Pin = Pin;
 module.AnalogPin = AnalogPin;
