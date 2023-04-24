@@ -366,5 +366,6 @@ bool rf95_waitPacketSentTimeout(RF95 *rf95, uint16_t timeout);
 bool rf95_send(RF95 *rf95, const uint8_t *data, uint8_t len);
 void rf95_deinit(RF95 *rf95);
 void rf95_free(RF95 *rf95);
+void rf95_setModeIdle(RF95 *rf95);
 
 #endif

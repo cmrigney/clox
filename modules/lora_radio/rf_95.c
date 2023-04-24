@@ -10,7 +10,6 @@
 #include "../clox.h"
 
 void rf95_interrupt_handler();
-void rf95_setModeIdle(RF95 *rf95);
 void rf95_setPreambleLength(RF95 *rf95, uint16_t bytes);
 
 // only one device supported for now

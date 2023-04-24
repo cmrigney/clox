@@ -249,6 +249,24 @@ static Value waitForPacketSent(Value *receiver, int argCount, Value *args) {
     return BOOL_VAL(rf95_waitPacketSent(rf95));
 }
 
+static Value setIdleMode(Value *receiver, int argCount, Value *args) {
+    if(argCount != 1) {
+        // runtimeError("setIdleMode() takes exactly 1 argument (%d given).", argCount);
+        return NIL_VAL;
+    }
+    if(!IS_REF(args[0])) {
+        // runtimeError("setIdleMode() argument must be an object reference.");
+        return NIL_VAL;
+    }
+    if(strcmp(AS_REF(args[0])->magic, "rf95") != 0) {
+        // runtimeError("setIdleMode() argument must be an object reference of type 'rf95'.");
+        return NIL_VAL;
+    }
+    RF95 *rf95 = (RF95*)AS_REF(args[0])->data;
+    rf95_setModeIdle(rf95);
+    return NIL_VAL;
+}
+
 bool registerModule_lora_radio() {
   registerNativeMethod("__create_rf95", create);
   registerNativeMethod("__disable_rf95", disable);
@@ -260,6 +278,7 @@ bool registerModule_lora_radio() {
   registerNativeMethod("__available_rf95", available);
   registerNativeMethod("__recv_rf95", recv);
   registerNativeMethod("__send_rf95", send);
+  registerNativeMethod("__set_idle_mode", setIdleMode);
   registerNativeMethod("__wait_for_packet_sent_rf95", waitForPacketSent);
   char *code = strndup(lora_module_bundle, lora_module_bundle_len);
   registerLoxCode(code);

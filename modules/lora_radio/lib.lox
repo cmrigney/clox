@@ -38,6 +38,9 @@ class RF95 {
   disable() {
     return module.__disable_rf95(this.rf95);
   }
+  setIdleMode() {
+    return module.__set_idle_mode(this.rf95);
+  }
 }
 
 module.RF95 = RF95;
