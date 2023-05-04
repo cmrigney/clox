@@ -28,6 +28,9 @@ void registerLoxCode(const char *source);
 #ifdef LORA_MODULE
 #include "lora_radio/lora.h"
 #endif
+#ifdef PIMORONI_MODULE
+#include "pimoroni/clox-pimoroni.h"
+#endif
 #endif
 
 
