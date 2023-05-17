@@ -56,7 +56,8 @@
     "typeinfo": "c",
     "lora.h": "c",
     "spi.h": "c",
-    "sync.h": "c"
+    "sync.h": "c",
+    "watchdog.h": "c"
   },
   "cmake.configureOnOpen": true,
   "cortex-debug.openocdPath": "/Users/crigney/Development/pico/openocd/src/openocd"

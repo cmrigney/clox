@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include "pico/stdlib.h"
 #include "hardware/adc.h"
+#include "hardware/watchdog.h"
 #ifdef PICO_TARGET_STDIO_USB
 #include "tusb.h"
 #endif
@@ -328,7 +329,7 @@ static Value exitNative(Value *receiver, int argCount, Value *args) {
   #ifdef USE_PICO_W
   cyw43_arch_deinit();
   #endif
-  exit(0);
+  pico_exit(0);
   return NIL_VAL;
 }
 
@@ -347,6 +348,10 @@ bool registerModule_pico() {
   registerNativeMethod("isW", isWNative);
   registerNativeMethod("getPicoStats", getPicoStatsNative);
   registerNativeMethod("lowPowerSleep", powerSleepNative);
+  registerNativeMethod("rebootOnExit", rebootOnRuntimeErrorNative);
+  registerNativeMethod("enableWatchdog", enableWatchdogNative);
+  registerNativeMethod("disableWatchdog", disableWatchdogNative);
+  registerNativeMethod("updateWatchdog", updateWatchdogNative);
 
   registerNativeMethod("__init_pin", initPinNative);
   registerNativeMethod("__get_led_pin", getLedPinNative);
@@ -404,5 +409,15 @@ void pico_repl() {
     }
 
     interpret(line);
+  }
+}
+
+void pico_exit(int exit_code) {
+  if(resetOnExit) {
+    watchdog_reboot(0, 0, 0);
+    for(;;) {}
+  }
+  else {
+    exit(exit_code);
   }
 }

@@ -7,6 +7,8 @@
 #include "hardware/structs/scb.h"
 #include "hardware/structs/syscfg.h"
 #include "hardware/watchdog.h"
+#include "hardware/structs/watchdog.h"
+#include "hardware/structs/psm.h"
 #include "hardware/xosc.h"
 #include "pico/stdlib.h"
 
@@ -80,5 +82,52 @@ Value powerSleepNative(Value *receiver, int argCount, Value *args) {
   clocks_init();
   restore_interrupts(my_interrupts);
 
+  return NIL_VAL;
+}
+
+bool resetOnExit = false;
+
+Value rebootOnRuntimeErrorNative(Value *receiver, int argCount, Value *args) {
+  if(argCount != 1) {
+    // runtimeError("rebootOnRuntimeError() takes exactly 1 arguments (%d given).", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_BOOL(args[0])) {
+    // runtimeError("rebootOnRuntimeError() argument must be a boolean.");
+    return NIL_VAL;
+  }
+  resetOnExit = AS_BOOL(args[0]);
+  return NIL_VAL;
+}
+
+Value enableWatchdogNative(Value *receiver, int argCount, Value *args) {
+  if(argCount != 1) {
+    // runtimeError("enableWatchdog() takes exactly 1 arguments (%d given).", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_NUMBER(args[0])) {
+    // runtimeError("enableWatchdog() argument must be a boolean.");
+    return NIL_VAL;
+  }
+  uint32_t timeout_ms = (uint32_t)(int)AS_NUMBER(args[0]);
+  watchdog_enable(timeout_ms, false);
+  return NIL_VAL;
+}
+
+Value disableWatchdogNative(Value *receiver, int argCount, Value *args) {
+  if(argCount != 0) {
+    // runtimeError("disableWatchdog() takes exactly 0 arguments (%d given).", argCount);
+    return NIL_VAL;
+  }
+  hw_clear_bits(&watchdog_hw->ctrl, WATCHDOG_CTRL_ENABLE_BITS);
+  return NIL_VAL;
+}
+
+Value updateWatchdogNative(Value *receiver, int argCount, Value *args) {
+  if(argCount != 0) {
+    // runtimeError("updateWatchdog() takes exactly 0 arguments (%d given).", argCount);
+    return NIL_VAL;
+  }
+  watchdog_update();
   return NIL_VAL;
 }

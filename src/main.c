@@ -63,6 +63,14 @@ static char* readFile(const char* path) {
   return buffer;
 }
 
+void runtime_exit(int exit_code) {
+  #ifdef PICO_MODULE
+  pico_exit(exit_code);
+  #else
+  exit(exit_code);
+  #endif
+}
+
 static void runBytes(const unsigned char *bytes, unsigned int length) {
   char* source = (char*)malloc(length + 1);
   memcpy(source, bytes, length);
@@ -71,7 +79,7 @@ static void runBytes(const unsigned char *bytes, unsigned int length) {
   free(source);
 
   if (result == INTERPRET_COMPILE_ERROR) exit(65);
-  if (result == INTERPRET_RUNTIME_ERROR) exit(70);
+  if (result == INTERPRET_RUNTIME_ERROR) runtime_exit(70);
 }
 
 static void runFile(const char* path, bool validateOnly) {
@@ -86,7 +94,7 @@ static void runFile(const char* path, bool validateOnly) {
   }
   free(source); 
   if (result == INTERPRET_COMPILE_ERROR) exit(65);
-  if (result == INTERPRET_RUNTIME_ERROR) exit(70);
+  if (result == INTERPRET_RUNTIME_ERROR) runtime_exit(70);
 }
 
 static void setupStdLib() {
