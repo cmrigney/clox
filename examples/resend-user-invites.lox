@@ -1,0 +1,28 @@
+var input = parse(getEnvVar("EVENT_INPUT"));
+
+if(!input.has("event") or !input.has("query") or !input.get("query").has("users")) {
+  perrorln("Missing event or query data");
+  logln(stringify(.{
+    status: "failure",
+    message: "Missing event or query data"
+  }));
+} else {
+  var event = input.event;
+  var users = input.query.users;
+  var effects = Array();
+  users.forEach(fun (user, idx) {
+    if(user.type == "Invitee") {
+      effects.push(.{
+        function: "resendInvitation",
+        params: .{
+          userId: user.id
+        }
+      });
+    }
+  });
+
+  logln(stringify(.{
+    status: "success",
+    effects: effects
+  }));
+}

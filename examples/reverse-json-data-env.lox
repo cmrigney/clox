@@ -1,4 +1,4 @@
-var input = getEnvVar("CLOX_INPUT");
+var input = getEnvVar("EVENT_INPUT");
 
 var data = parse(input).data;
 
@@ -7,6 +7,8 @@ var reversedData = "";
 for(var i = data.length() - 1; i >= 0; i = i - 1) {
   reversedData = reversedData + data.get(i);
 }
+
+perrorln("Reversed data: " + reversedData);
 
 logln(stringify(.{
   data: reversedData
