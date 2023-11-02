@@ -4,3 +4,6 @@
 [submodule "vendor/pico-sdk"]
 	path = vendor/pico-sdk
 	url = git@github.com:raspberrypi/pico-sdk.git
+[submodule "vendor/asmjit"]
+	path = vendor/asmjit
+	url = git@github.com:asmjit/asmjit.git

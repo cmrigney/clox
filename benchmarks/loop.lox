@@ -1,0 +1,10 @@
+var start = clock();
+
+var total = 0;
+for(var i = 0; i <= 100000000; i = i + 1) {
+  total = total + i;
+}
+
+var diff = clock() - start;
+logln("Total", total);
+logln(diff, "Seconds");

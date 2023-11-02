@@ -15,16 +15,16 @@ typedef struct {
   Entry* entries;
 } Table;
 
-void initTable(Table* table);
-void freeTable(Table* table);
-bool tableGet(Table* table, ObjString* key, Value* value);
-bool tableSet(Table* table, ObjString* key, Value value);
-bool tableDelete(Table* table, ObjString* key);
-void tableAddAll(Table* from, Table* to);
-ObjString* tableFindString(Table* table, const char* chars,
+EXPORT void freeTable(Table* table);
+EXPORT void initTable(Table* table);
+EXPORT bool tableGet(Table* table, ObjString* key, Value* value);
+EXPORT bool tableSet(Table* table, ObjString* key, Value value);
+EXPORT bool tableDelete(Table* table, ObjString* key);
+EXPORT void tableAddAll(Table* from, Table* to);
+EXPORT ObjString* tableFindString(Table* table, const char* chars,
                            int length, uint32_t hash);
-void tableRemoveWhite(Table* table);
-void markTable(Table* table);
-Entry *tableIterate(Table *table, Entry *previous);
+EXPORT void tableRemoveWhite(Table* table);
+EXPORT void markTable(Table* table);
+EXPORT Entry *tableIterate(Table *table, Entry *previous);
 
 #endif

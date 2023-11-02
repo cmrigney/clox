@@ -59,17 +59,17 @@ typedef enum {
 
 extern VM vm;
 
-void initVM();
-void freeVM();
-InterpretResult interpret(const char* source);
-InterpretResult validate(const char* source);
-void push(Value value);
-Value pop();
-Value peek(int distance);
-Value callLoxCode(const char* name, Value *receiver, int argCount, Value *args);
-void mutateConcatenate();
-void concatenate();
-bool callModule(ObjClosure *closure, int argCount);
-ObjInstance *createObjectInstance();
+EXPORT void initVM();
+EXPORT void freeVM();
+EXPORT InterpretResult interpret(const char* source);
+EXPORT InterpretResult validate(const char* source);
+EXPORT void push(Value value);
+EXPORT Value pop();
+EXPORT Value peek(int distance);
+EXPORT Value callLoxCode(const char* name, Value *receiver, int argCount, Value *args);
+EXPORT void mutateConcatenate();
+EXPORT void concatenate();
+EXPORT bool callModule(ObjClosure *closure, int argCount);
+EXPORT ObjInstance *createObjectInstance();
 
 #endif

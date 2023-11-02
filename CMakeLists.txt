@@ -11,12 +11,18 @@ enable_testing()
 
 add_executable(clox)
 
-FILE(GLOB MyCSources src/*.c src/native/*.c)
+FILE(GLOB MyCSources src/*.c src/native/*.c src/jit/*.cpp)
 target_sources(clox PRIVATE ${MyCSources})
 
-target_include_directories(clox PRIVATE src vendor autogen modules)
+target_compile_features(clox PRIVATE cxx_std_11)
+
+target_include_directories(clox PRIVATE src vendor autogen modules vendor/asmjit/src)
 
 target_compile_options(clox PRIVATE -Werror)
+
+set(ASMJIT_STATIC TRUE)
+include(vendor/asmjit/CMakeLists.txt)
+target_link_libraries(clox asmjit)
 
 if("$ENV{MODULES}" MATCHES "filesystem")
   find_library(FILESYSTEM_MODULE NAMES libcloxfilesystem.a HINTS "modules/filesystem")

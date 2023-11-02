@@ -95,10 +95,10 @@ typedef struct {
   Value* values;
 } ValueArray;
 
-bool valuesEqual(Value a, Value b);
-void initValueArray(ValueArray* array);
-void writeValueArray(ValueArray* array, Value value);
-void freeValueArray(ValueArray* array);
-void printValue(Value value);
+EXPORT bool valuesEqual(Value a, Value b);
+EXPORT void initValueArray(ValueArray* array);
+EXPORT void writeValueArray(ValueArray* array, Value value);
+EXPORT void freeValueArray(ValueArray* array);
+EXPORT void printValue(Value value);
 
 #endif

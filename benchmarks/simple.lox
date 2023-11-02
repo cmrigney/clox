@@ -1,0 +1,5 @@
+{
+  var total = !false;
+  logln(total); // true
+  logln(!true); // false
+}

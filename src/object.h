@@ -137,22 +137,22 @@ typedef struct {
   ValueArray values;
 } ObjArray;
 
-ObjArray *newArray();
-ObjBoundMethod* newBoundMethod(Value receiver,
+EXPORT ObjArray *newArray();
+EXPORT ObjBoundMethod* newBoundMethod(Value receiver,
                                ObjClosure* method);
-ObjClass* newClass(ObjString* name);
-ObjInstance* newInstance(ObjClass* klass);
-ObjClosure* newClosure(ObjFunction* function);
-ObjUpvalue* newUpvalue(Value* slot);
-ObjString* copyString(const char* chars, int length);
-void printObject(Value value);
-ObjFunction* newFunction();
-ObjNative* newNative(NativeFn function, bool callsLox);
-ObjBoundNative* newBoundNative(Value receiver, NativeFn function, bool callsLox);
-ObjString* takeString(char* chars, int length);
-ObjBuffer* newBuffer(int size);
-ObjBuffer* takeBuffer(uint8_t* bytes, int size);
-ObjRef* newRef(const char *magic, const char *description, void *data, void (*dispose)(void *data));
+EXPORT ObjClass* newClass(ObjString* name);
+EXPORT ObjInstance* newInstance(ObjClass* klass);
+EXPORT ObjClosure* newClosure(ObjFunction* function);
+EXPORT ObjUpvalue* newUpvalue(Value* slot);
+EXPORT ObjString* copyString(const char* chars, int length);
+EXPORT void printObject(Value value);
+EXPORT ObjFunction* newFunction();
+EXPORT ObjNative* newNative(NativeFn function, bool callsLox);
+EXPORT ObjBoundNative* newBoundNative(Value receiver, NativeFn function, bool callsLox);
+EXPORT ObjString* takeString(char* chars, int length);
+EXPORT ObjBuffer* newBuffer(int size);
+EXPORT ObjBuffer* takeBuffer(uint8_t* bytes, int size);
+EXPORT ObjRef* newRef(const char *magic, const char *description, void *data, void (*dispose)(void *data));
 
 static inline bool isObjType(Value value, ObjType type) {
   return IS_OBJ(value) && AS_OBJ(value)->type == type;

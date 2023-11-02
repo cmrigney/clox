@@ -53,9 +53,9 @@ typedef struct {
   ValueArray constants;
 } Chunk;
 
-void initChunk(Chunk* chunk);
-void writeChunk(Chunk* chunk, uint8_t byte, int line);
-void freeChunk(Chunk* chunk);
-int addConstant(Chunk* chunk, Value value);
+EXPORT void initChunk(Chunk* chunk);
+EXPORT void writeChunk(Chunk* chunk, uint8_t byte, int line);
+EXPORT void freeChunk(Chunk* chunk);
+EXPORT int addConstant(Chunk* chunk, Value value);
 
 #endif

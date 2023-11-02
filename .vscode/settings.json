@@ -57,8 +57,11 @@
     "lora.h": "c",
     "spi.h": "c",
     "sync.h": "c",
-    "watchdog.h": "c"
+    "watchdog.h": "c",
+    "jit.h": "c",
+    "map": "cpp"
   },
   "cmake.configureOnOpen": true,
-  "cortex-debug.openocdPath": "/Users/crigney/Development/pico/openocd/src/openocd"
+  "cortex-debug.openocdPath": "/Users/crigney/Development/pico/openocd/src/openocd",
+  "dotnet.defaultSolution": "disable"
 }

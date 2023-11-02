@@ -14,6 +14,12 @@
 
 #define UINT8_COUNT (UINT8_MAX + 1)
 
+#ifdef __cplusplus
+#define EXPORT extern "C"
+#else
+#define EXPORT
+#endif
+
 // Need to save as much memory as possible on low mem system
 #ifdef PICO_MODULE
 #define DEBUG_STRESS_GC

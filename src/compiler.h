@@ -4,8 +4,8 @@
 #include "object.h"
 #include "vm.h"
 
-ObjFunction* compile(const char* source);
-ObjFunction* compileModule(const char* source);
-void markCompilerRoots();
+EXPORT ObjFunction* compile(const char* source);
+EXPORT ObjFunction* compileModule(const char* source);
+EXPORT void markCompilerRoots();
 
 #endif

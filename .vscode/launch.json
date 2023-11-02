@@ -9,7 +9,7 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/clox",
-      "args": ["examples/buffer.lox"],
+      "args": ["benchmarks/loop-simple.lox"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],

@@ -12,6 +12,7 @@
 #include "chunk.h"
 #include "debug.h"
 #include "vm.h"
+#include "jit/jit.h"
 
 #include "stdlib_lox.h"
 #ifdef BUNDLE
@@ -90,7 +91,8 @@ static void runFile(const char* path, bool validateOnly) {
   if(validateOnly) {
     result = validate(source);
   } else {
-    result = interpret(source);
+    // result = interpret(source);
+    result = compileAndRun(source);
   }
   free(source); 
   if (result == INTERPRET_COMPILE_ERROR) exit(65);
@@ -125,10 +127,10 @@ int main(int argc, const char* argv[]) {
     setupStdLib();
     repl();
   } else if (argc == 2) {
-    setupStdLib();
+    // setupStdLib();
     runFile(argv[1], false);
   } else if(argc == 3 && strcmp(argv[1], "validate") == 0) {
-    setupStdLib();
+    // setupStdLib();
     runFile(argv[2], true);
     fprintf(stdout, "%s is valid\n", argv[2]);
   } else {
