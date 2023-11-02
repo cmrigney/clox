@@ -181,7 +181,7 @@ static Value pin_read_analog(Value *receiver, int argCount, Value *args) {
   }
   uint pin = (uint)AS_NUMBER(args[0]);
   adc_select_input(pin - 26);
-  return NUMBER_VAL((double)adc_read() * ADC_CONVERT);
+  return NUMBER_VAL((double)adc_read());
 }
 
 static Value pinPullUpNative(Value *receiver, int argCount, Value *args) {
