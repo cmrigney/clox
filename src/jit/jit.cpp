@@ -6,9 +6,6 @@
 
 using namespace asmjit;
 
-#define MAX_REGISTER_STACK 256
-
-typedef int (*Square)(int n);
 typedef void (*Arity0Fn)();
 
 static bool isFalsey(Value value) {
@@ -46,10 +43,14 @@ static void printStack(Chunk *chunk, uint64_t offset) {
 }
 #endif
 
-static void stubCall(Value value) {
-  printf("Stub call\n");
-  printValue(value);
-  printf("\n");
+static Value callHandler(Value callee, int argCount) {
+  if(IS_OBJ(callee)) {
+    if(OBJ_TYPE(callee) == OBJ_NATIVE) {
+      NativeFn native = AS_NATIVE(callee);
+      return native(NULL, argCount, vm.stackTop - argCount);
+    }
+  }
+  return NIL_VAL; // TODO handle other cases
 }
 
 class MyErrorHandler : public ErrorHandler {
@@ -136,7 +137,7 @@ static void compileFunction(ObjClosure *closure)
 
   CodeHolder code;
   code.init(rt.environment(), rt.cpuFeatures());
-  // code.setLogger(&logger);
+  code.setLogger(&logger);
   code.setErrorHandler(&myErrorHandler);
 
   a64::Compiler cc(&code);
@@ -145,8 +146,6 @@ static void compileFunction(ObjClosure *closure)
 
   FuncNode *funcNode;
 
-  a64::Gp registerStack[MAX_REGISTER_STACK];
-
   switch (closure->function->arity)
   {
   case 0:
@@ -154,24 +153,12 @@ static void compileFunction(ObjClosure *closure)
     break;
   case 1:
     funcNode = cc.addFunc(FuncSignatureT<Value, Value>());
-    registerStack[0] = cc.newGpx();
-    funcNode->setArg(0, registerStack[0]);
     break;
   case 2:
     funcNode = cc.addFunc(FuncSignatureT<Value, Value, Value>());
-    registerStack[0] = cc.newGpx();
-    funcNode->setArg(0, registerStack[0]);
-    registerStack[1] = cc.newGpx();
-    funcNode->setArg(1, registerStack[1]);
     break;
   case 3:
     funcNode = cc.addFunc(FuncSignatureT<Value, Value, Value, Value>());
-    registerStack[0] = cc.newGpx();
-    funcNode->setArg(0, registerStack[0]);
-    registerStack[1] = cc.newGpx();
-    funcNode->setArg(1, registerStack[1]);
-    registerStack[2] = cc.newGpx();
-    funcNode->setArg(2, registerStack[2]);
     break;
   default:
     // TODO fix
@@ -186,13 +173,10 @@ static void compileFunction(ObjClosure *closure)
   }
 
   a64::Gp ret = cc.newGpx();
-  int highestStackIndex = closure->function->arity;
 
   auto TRUE_VAL_MEM = cc.newUInt64Const(ConstPoolScope::kGlobal, TRUE_VAL);
   auto FALSE_VAL_MEM = cc.newUInt64Const(ConstPoolScope::kGlobal, FALSE_VAL);
   auto NIL_VAL_MEM = cc.newUInt64Const(ConstPoolScope::kGlobal, NIL_VAL);
-
-  auto CLOSURE_MEM = cc.newUInt64Const(ConstPoolScope::kLocal, OBJ_VAL(closure));
 
   Value **stackTopPtr = &vm.stackTop;
   auto stackTopPtrReg = cc.newUIntPtr();
@@ -202,51 +186,107 @@ static void compileFunction(ObjClosure *closure)
   auto baseStackPtrReg = cc.newUIntPtr();
   cc.mov(baseStackPtrReg, (uint64_t)baseStackPtr);
 
-#define PUSH_MEM(value) \
+  int registerStackTop = 0;
+  a64::Gp registerStack[256];
+
+#define FLUSH_REGISTER_CACHE() \
   do { \
-    auto valueReg = cc.newGpx(); \
-    auto derefStackTopPtrReg = cc.newGpx(); \
-    cc.ldr(valueReg, value); \
-    cc.ldr(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
-    cc.str(valueReg, a64::Mem(derefStackTopPtrReg)); \
-    cc.add(derefStackTopPtrReg, derefStackTopPtrReg, sizeof(Value)); \
-    cc.str(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
+    if(registerStackTop > 0) { \
+      auto derefStackTopPtrReg = cc.newGpx(); \
+      cc.ldr(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
+      for(int i = 0; i < registerStackTop; i++) { \
+        cc.str(registerStack[i], a64::Mem(derefStackTopPtrReg)); \
+        cc.add(derefStackTopPtrReg, derefStackTopPtrReg, sizeof(Value)); \
+      } \
+      cc.str(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
+      registerStackTop = 0; \
+    } \
   } while (0)
+
+/*
+// Also a possible way to store multiple faster
+if(registerStackTop >= 2) { \
+  for(int i = 0; i < registerStackTop; i += 2) { \
+    cc.stp(registerStack[i], registerStack[i + 1], a64::Mem(derefStackTopPtrReg)); \
+    cc.add(derefStackTopPtrReg, derefStackTopPtrReg, sizeof(Value) * 2); \
+  } \
+} \
+if(registerStackTop % 2 == 1) { \
+  cc.str(registerStack[registerStackTop - 1], a64::Mem(derefStackTopPtrReg)); \
+  cc.add(derefStackTopPtrReg, derefStackTopPtrReg, sizeof(Value)); \
+} \
+*/
 
 #define PUSH_REG(value) \
   do { \
-    auto derefStackTopPtrReg = cc.newGpx(); \
-    cc.ldr(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
-    cc.str(value, a64::Mem(derefStackTopPtrReg)); \
-    cc.add(derefStackTopPtrReg, derefStackTopPtrReg, sizeof(Value)); \
-    cc.str(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
+    if(registerStackTop >= 256) { \
+      printf("Stack overflow\n"); \
+      exit(1); \
+    } \
+    registerStack[registerStackTop++] = value; \
   } while (0)
+    // auto derefStackTopPtrReg = cc.newGpx(); \
+    // cc.ldr(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
+    // cc.str(value, a64::Mem(derefStackTopPtrReg)); \
+    // cc.add(derefStackTopPtrReg, derefStackTopPtrReg, sizeof(Value)); \
+    // cc.str(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
+
+#define PUSH_MEM(value) \
+  do { \
+    PUSH_REG(cc.newGpx()); \
+    cc.ldr(registerStack[registerStackTop - 1], value); \
+  } while (0)
+    // auto valueReg = cc.newGpx(); \
+    // auto derefStackTopPtrReg = cc.newGpx(); \
+    // cc.ldr(valueReg, value); \
+    // cc.ldr(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
+    // cc.str(valueReg, a64::Mem(derefStackTopPtrReg)); \
+    // cc.add(derefStackTopPtrReg, derefStackTopPtrReg, sizeof(Value)); \
+    // cc.str(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
 
 #define SEEK(OUT, PTR, n) \
+  FLUSH_REGISTER_CACHE(); \
   auto OUT = cc.newGpx(); \
   auto PTR = cc.newUIntPtr(); \
   do { \
     cc.mov(PTR, baseStackPtr); \
-    cc.add(PTR, PTR, sizeof(Value) * (n)); \
+    if(n > 0) { \
+      cc.add(PTR, PTR, sizeof(Value) * (n)); \
+    } \
     cc.ldr(OUT, a64::Mem(PTR)); \
   } while(0)
 
 #define PEEK(OUT, n) \
-  auto OUT = cc.newGpx(); \
+  a64::Gp OUT; \
   do { \
-    auto ptrReg = cc.newUIntPtr(); \
-    auto derefStackTopPtrReg = cc.newGpx(); \
-    cc.ldr(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
-    cc.sub(ptrReg, derefStackTopPtrReg, sizeof(Value) * (n + 1)); \
-    cc.ldr(OUT, a64::Mem(ptrReg)); \
+    if(n < registerStackTop) { \
+      OUT = registerStack[registerStackTop - n - 1]; \
+    } \
+    else { \
+      OUT = cc.newGpx(); \
+      auto ptrReg = cc.newUIntPtr(); \
+      auto derefStackTopPtrReg = cc.newGpx(); \
+      cc.ldr(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
+      cc.sub(ptrReg, derefStackTopPtrReg, sizeof(Value) * (n + 1)); \
+      cc.ldr(OUT, a64::Mem(ptrReg)); \
+    } \
   } while (0)
 
 #define POP() \
   do { \
-    auto derefStackTopPtrReg = cc.newGpx(); \
-    cc.ldr(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
-    cc.sub(derefStackTopPtrReg, derefStackTopPtrReg, sizeof(Value)); \
-    cc.str(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
+    if(registerStackTop < 0) { \
+      printf("Stack underflow\n"); \
+      exit(1); \
+    } \
+    if(registerStackTop > 0) { \
+      registerStackTop--; \
+    } \
+    else { \
+      auto derefStackTopPtrReg = cc.newGpx(); \
+      cc.ldr(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
+      cc.sub(derefStackTopPtrReg, derefStackTopPtrReg, sizeof(Value)); \
+      cc.str(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
+    } \
   } while (0)
 
 #define READ_BYTE() (*ip++)
@@ -260,10 +300,6 @@ static void compileFunction(ObjClosure *closure)
   
   bool done = false;
 
-  #ifdef DEBUG_TRACE_EXECUTION
-  Value debugStack[MAX_REGISTER_STACK];
-  #endif
-
   for (;;)
   {
     if(done) {
@@ -271,11 +307,13 @@ static void compileFunction(ObjClosure *closure)
     }
 
     if(jumpTable.find(ip - chunk->code) != jumpTable.end()) {
+      FLUSH_REGISTER_CACHE(); // Anything that jumps to this needs a fresh start on registers
       cc.bind(jumpTable[ip - chunk->code]);
     }
 
     #ifdef DEBUG_TRACE_EXECUTION
     // print stack
+    FLUSH_REGISTER_CACHE();
     auto printStackReg = cc.newGpx();
     cc.mov(printStackReg, (uint64_t)&printStack);
     InvokeNode* call_printStack;
@@ -308,6 +346,7 @@ static void compileFunction(ObjClosure *closure)
       break;
     }
     case OP_GET_GLOBAL: {
+      FLUSH_REGISTER_CACHE();
       auto constant = READ_CONSTANT();
       auto constantReg = cc.newGpx();
       
@@ -371,32 +410,40 @@ static void compileFunction(ObjClosure *closure)
       break;
     }
     case OP_CALL: {
+      FLUSH_REGISTER_CACHE();
       // TODO
       int argCount = READ_BYTE();
       // Pointer to ObjClosure* is in top - 1 - argCount
+      PEEK(calleeReg, argCount);
 
-      auto stubCallReg = cc.newGpx();
-      cc.mov(stubCallReg, (uint64_t)&stubCall);
-      InvokeNode* call_stubCall;
-      PEEK(a, 0); // TODO need array
-      POP();
-      cc.invoke(&call_stubCall, stubCallReg, FuncSignatureT<void, Value>());
-      for(int i = argCount - 1; i >= 0; i--) {
-        call_stubCall->setArg(i, a);
+      auto callHandlerReg = cc.newGpx();
+      cc.mov(callHandlerReg, (uint64_t)&callHandler);
+      InvokeNode* call_callHandler;
+
+      cc.invoke(&call_callHandler, callHandlerReg, FuncSignatureT<Value, Value, int>());
+      call_callHandler->setArg(0, calleeReg);
+      call_callHandler->setArg(1, argCount);
+      auto resultReg = cc.newGpx();
+      call_callHandler->setRet(0, resultReg);
+
+      // TODO this could be make more efficient with a POP(argCount + 1)
+      for(int i = 0; i < argCount; i++) {
+        POP(); // pop args
       }
+      POP(); // pop fn
 
-      POP();
-
-      PUSH_MEM(NIL_VAL_MEM); // simulate function result
+      PUSH_REG(resultReg);
       break;
     }
     case OP_JUMP: {
+      FLUSH_REGISTER_CACHE();
       auto offset = READ_SHORT();
       auto jumpLabel = jumpTable[ip - chunk->code + offset];
       cc.b(jumpLabel); // TODO verify this won't mess up registers
       break;
     }
     case OP_JUMP_IF_FALSE: {
+      FLUSH_REGISTER_CACHE();
       auto offset = READ_SHORT();
       auto jumpLabel = jumpTable[ip - chunk->code + offset];
 
@@ -416,6 +463,7 @@ static void compileFunction(ObjClosure *closure)
       break;
     }
     case OP_LOOP: {
+      FLUSH_REGISTER_CACHE();
       auto offset = READ_SHORT();
       auto jumpLabel = jumpTable[ip - chunk->code - offset];
       cc.b(jumpLabel);
@@ -439,9 +487,9 @@ static void compileFunction(ObjClosure *closure)
     }
     case OP_ADD: {
       // TODO we can't assume numbers
-      PEEK(a, 0);
-      POP();
       PEEK(b, 0);
+      POP();
+      PEEK(a, 0);
       POP();
       auto va = cc.newVecD();
       auto vb = cc.newVecD();
@@ -454,7 +502,60 @@ static void compileFunction(ObjClosure *closure)
       PUSH_REG(a);
       break;
     }
+    case OP_SUBTRACT: {
+      // TODO we can't assume numbers
+      PEEK(b, 0);
+      POP();
+      PEEK(a, 0);
+      POP();
+      auto va = cc.newVecD();
+      auto vb = cc.newVecD();
+      cc.mov(va.d(0), a);
+      cc.mov(vb.d(0), b);
+
+      cc.fsub(va, va, vb);
+      cc.mov(a, va.d(0));
+
+      PUSH_REG(a);
+      break;
+    }
+    case OP_MULTIPLY: {
+      // TODO we can't assume numbers
+      PEEK(b, 0);
+      POP();
+      PEEK(a, 0);
+      POP();
+      auto va = cc.newVecD();
+      auto vb = cc.newVecD();
+      cc.mov(va.d(0), a);
+      cc.mov(vb.d(0), b);
+
+      cc.fmul(va, va, vb);
+      cc.mov(a, va.d(0));
+
+      PUSH_REG(a);
+      break;
+    }
+    case OP_DIVIDE: {
+      // TODO we can't assume numbers
+      PEEK(b, 0);
+      POP();
+      PEEK(a, 0);
+      POP();
+      auto va = cc.newVecD();
+      auto vb = cc.newVecD();
+      cc.mov(va.d(0), a);
+      cc.mov(vb.d(0), b);
+
+      cc.fdiv(va, va, vb);
+      cc.mov(a, va.d(0));
+
+      PUSH_REG(a);
+      break;
+    }
     case OP_RETURN: {
+      FLUSH_REGISTER_CACHE();
+
       PEEK(resultReg, 0);
       POP();
 

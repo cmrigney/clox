@@ -91,8 +91,12 @@ static void runFile(const char* path, bool validateOnly) {
   if(validateOnly) {
     result = validate(source);
   } else {
-    // result = interpret(source);
-    result = compileAndRun(source);
+    if(getenv("CLOX_JIT")) {
+      result = compileAndRun(source);
+    }
+    else {
+      result = interpret(source);
+    }
   }
   free(source); 
   if (result == INTERPRET_COMPILE_ERROR) exit(65);

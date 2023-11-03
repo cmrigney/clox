@@ -1,11 +1,12 @@
 {
   var total = 0;
-  logln(99);
-  logln(total);
+  logln("Start:", total);
+  var start = clock();
   for(var i = 0; i <= 100000000; i = i + 1) {
-  // for(var i = 0; i <= 10; i = i + 1) {
     total = total + i;
   }
+  var diff = clock() - start;
 
-  logln(total);
+  logln("End:", total);
+  logln("Time ", diff * 1000, "millseconds");
 }
