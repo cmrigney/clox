@@ -8,6 +8,6 @@
 CloxJit cloxJit;
 bool jitEnabled;
 
-void jitLoxClosure(ObjClosure *closure) {
-  cloxJit.jit(closure);
+JittedFn jitLoxClosure(ObjClosure *closure) {
+  return cloxJit.jit(closure);
 }

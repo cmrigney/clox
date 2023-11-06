@@ -10,7 +10,7 @@ typedef void (*JittedFn)(CallFrame *frame);
 
 extern bool jitEnabled;
 
-EXPORT void jitLoxClosure(ObjClosure *closure);
+EXPORT JittedFn jitLoxClosure(ObjClosure *closure);
 
 static inline void enableJit(bool enabled) {
   jitEnabled = enabled;

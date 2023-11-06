@@ -615,7 +615,5 @@ if(registerStackTop % 2 == 1) { \
 
   jittedFns.push_back(fn);
 
-  closure->jitFn = (void*)fn;
-
   return fn;
 }

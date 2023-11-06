@@ -270,7 +270,7 @@ static bool callValue(Value callee, int argCount) {
         }
         if(jitEnabled) {
           if(!closure->jitFn) {
-            jitLoxClosure(closure);
+            closure->jitFn = jitLoxClosure(closure);
           }
           ((JittedFn)closure->jitFn)(&vm.frames[vm.frameCount - 1]);
           vm.frameCount--; // Jit call finishes execution
@@ -816,7 +816,7 @@ InterpretResult interpret(const char* source) {
 
   if(jitEnabled) {
     if(!closure->jitFn) {
-      jitLoxClosure(closure);
+      closure->jitFn = jitLoxClosure(closure);
     }
     // TODO return jit result
     ((JittedFn)(closure->jitFn))(&vm.frames[vm.frameCount - 1]);
