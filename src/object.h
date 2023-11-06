@@ -112,6 +112,7 @@ typedef struct {
   ObjFunction* function;
   ObjUpvalue** upvalues;
   int upvalueCount;
+  void *jitFn;
 } ObjClosure;
 
 typedef struct {

@@ -58,6 +58,7 @@ ObjClosure* newClosure(ObjFunction* function) {
   closure->function = function;
   closure->upvalues = upvalues;
   closure->upvalueCount = function->upvalueCount;
+  closure->jitFn = NULL;
   return closure;
 }
 

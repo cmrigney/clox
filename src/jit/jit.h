@@ -2,8 +2,18 @@
 #ifndef clox_jit_h
 #define clox_jit_h
 
+#include "common.h"
+#include "object.h"
 #include "vm.h"
 
-InterpretResult compileAndRun(const char *source);
+typedef void (*JittedFn)(CallFrame *frame);
+
+extern bool jitEnabled;
+
+EXPORT void jitLoxClosure(ObjClosure *closure);
+
+static inline void enableJit(bool enabled) {
+  jitEnabled = enabled;
+}
 
 #endif

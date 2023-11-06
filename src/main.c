@@ -91,12 +91,7 @@ static void runFile(const char* path, bool validateOnly) {
   if(validateOnly) {
     result = validate(source);
   } else {
-    if(getenv("CLOX_JIT")) {
-      result = compileAndRun(source);
-    }
-    else {
-      result = interpret(source);
-    }
+    result = interpret(source);
   }
   free(source); 
   if (result == INTERPRET_COMPILE_ERROR) exit(65);
@@ -119,6 +114,8 @@ int main(int argc, const char* argv[]) {
   srand((unsigned int)clock());
 
   initVM();
+
+  enableJit(getenv("CLOX_JIT") != NULL);
 
   #ifdef BUNDLE
   setupStdLib();

@@ -13,6 +13,7 @@
 #include "vm.h"
 #include "native/native.h"
 #include "modules.h"
+#include "jit/jit.h"
 
 VM vm;
 static bool call(ObjClosure* closure, int argCount);
@@ -262,8 +263,20 @@ static bool callValue(Value callee, int argCount) {
         }
         return true;
       }
-      case OBJ_CLOSURE:
-        return call(AS_CLOSURE(callee), argCount);
+      case OBJ_CLOSURE: {
+        ObjClosure *closure = AS_CLOSURE(callee);
+        if(!call(closure, argCount)) {
+          return false;
+        }
+        if(jitEnabled) {
+          if(!closure->jitFn) {
+            jitLoxClosure(closure);
+          }
+          ((JittedFn)closure->jitFn)(&vm.frames[vm.frameCount - 1]);
+          vm.frameCount--; // Jit call finishes execution
+        }
+        return true;
+      }
       case OBJ_NATIVE: {
         NativeFn native = AS_NATIVE(callee);
         Value result = native(NULL, argCount, vm.stackTop - argCount);
@@ -432,8 +445,7 @@ void concatenate() {
   push(OBJ_VAL(result));
 }
 
-static InterpretResult run() {
-  CallFrame* frame = &vm.frames[vm.frameCount - 1];
+static InterpretResult runFrame(CallFrame* frame) {
 
 #ifdef DEBUG_TRACE_EXECUTION
 #define DISPATCH() goto DO_DEBUG_PRINT
@@ -802,7 +814,18 @@ InterpretResult interpret(const char* source) {
   push(OBJ_VAL(closure));
   call(closure, 0);
 
-  return run();
+  if(jitEnabled) {
+    if(!closure->jitFn) {
+      jitLoxClosure(closure);
+    }
+    // TODO return jit result
+    ((JittedFn)(closure->jitFn))(&vm.frames[vm.frameCount - 1]);
+    vm.frameCount--; // Jit call finishes execution
+    return INTERPRET_OK;
+  }
+  else {
+    return runFrame(&vm.frames[vm.frameCount - 1]);
+  }
 }
 
 InterpretResult validate(const char* source) {
