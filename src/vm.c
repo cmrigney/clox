@@ -17,7 +17,7 @@
 
 VM vm;
 static bool call(ObjClosure* closure, int argCount);
-static bool callValue(Value callee, int argCount);
+bool callValue(Value callee, int argCount);
 
 ObjInstance *createObjectInstance() {
   Value objClassVal;
@@ -241,7 +241,7 @@ bool callModule(ObjClosure *closure, int argCount) {
   return call(closure, argCount);
 }
 
-static bool callValue(Value callee, int argCount) {
+bool callValue(Value callee, int argCount) {
   if (IS_OBJ(callee)) {
     switch (OBJ_TYPE(callee)) {
       case OBJ_BOUND_METHOD: {
@@ -273,7 +273,6 @@ static bool callValue(Value callee, int argCount) {
             closure->jitFn = jitLoxClosure(closure);
           }
           ((JittedFn)closure->jitFn)(&vm.frames[vm.frameCount - 1]);
-          vm.frameCount--; // Jit call finishes execution
         }
         return true;
       }
@@ -397,7 +396,7 @@ static ObjUpvalue* captureUpvalue(Value* local) {
   return createdUpvalue;
 }
 
-static void closeUpvalues(Value* last) {
+void closeUpvalues(Value* last) {
   while (vm.openUpvalues != NULL &&
          vm.openUpvalues->location >= last) {
     ObjUpvalue* upvalue = vm.openUpvalues;
@@ -818,9 +817,7 @@ InterpretResult interpret(const char* source) {
     if(!closure->jitFn) {
       closure->jitFn = jitLoxClosure(closure);
     }
-    // TODO return jit result
     ((JittedFn)(closure->jitFn))(&vm.frames[vm.frameCount - 1]);
-    vm.frameCount--; // Jit call finishes execution
     return INTERPRET_OK;
   }
   else {

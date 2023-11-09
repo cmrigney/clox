@@ -149,7 +149,9 @@ JittedFn CloxJit::jit(ObjClosure *closure) {
 
   auto jumpTable = buildJumpTable(closure->function, cc);
 
-  FuncNode *funcNode = cc.addFunc(FuncSignatureT<Value, CallFrame*>());
+  FuncNode *funcNode = cc.addFunc(FuncSignatureT<InterpretResult, CallFrame*>());
+  auto callFrameReg = cc.newGpx();
+  funcNode->setArg(0, callFrameReg);
 
   a64::Mem constants[chunk->constants.count];
   for (int i = 0; i < chunk->constants.count; i++)
@@ -167,7 +169,8 @@ JittedFn CloxJit::jit(ObjClosure *closure) {
   auto stackTopPtrReg = cc.newUIntPtr();
   cc.mov(stackTopPtrReg, (uint64_t)stackTopPtr);
 
-  Value *baseStackPtr = vm.stack; // TODO should be beginning of function stack
+  auto slotBasePtr = cc.newUIntPtr();
+  cc.add(slotBasePtr, callFrameReg, offsetof(CallFrame, slots));
 
   int registerStackTop = 0;
   a64::Gp registerStack[256];
@@ -208,31 +211,24 @@ if(registerStackTop % 2 == 1) { \
     } \
     registerStack[registerStackTop++] = value; \
   } while (0)
-    // auto derefStackTopPtrReg = cc.newGpx(); \
-    // cc.ldr(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
-    // cc.str(value, a64::Mem(derefStackTopPtrReg)); \
-    // cc.add(derefStackTopPtrReg, derefStackTopPtrReg, sizeof(Value)); \
-    // cc.str(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
 
 #define PUSH_MEM(value) \
   do { \
     PUSH_REG(cc.newGpx()); \
     cc.ldr(registerStack[registerStackTop - 1], value); \
   } while (0)
-    // auto valueReg = cc.newGpx(); \
-    // auto derefStackTopPtrReg = cc.newGpx(); \
-    // cc.ldr(valueReg, value); \
-    // cc.ldr(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
-    // cc.str(valueReg, a64::Mem(derefStackTopPtrReg)); \
-    // cc.add(derefStackTopPtrReg, derefStackTopPtrReg, sizeof(Value)); \
-    // cc.str(derefStackTopPtrReg, a64::Mem(stackTopPtrReg)); \
 
 #define SEEK(OUT, PTR, n) \
   FLUSH_REGISTER_CACHE(); \
   auto OUT = cc.newGpx(); \
   auto PTR = cc.newUIntPtr(); \
   do { \
-    cc.mov(PTR, baseStackPtr + n); \
+    if(n > 0) { \
+      cc.add(PTR, slotBasePtr, sizeof(Value) * n); \
+    } \
+    else { \
+      cc.mov(PTR, slotBasePtr); \
+    } \
     cc.ldr(OUT, a64::Mem(PTR)); \
   } while(0)
 
@@ -577,13 +573,46 @@ if(registerStackTop % 2 == 1) { \
       break;
     }
     case OP_RETURN: {
-      FLUSH_REGISTER_CACHE();
+
+      // closeUpvalues(frame->slots);
+      auto slotsReg = cc.newGpx();
+      cc.add(slotsReg, callFrameReg, offsetof(CallFrame, slots));
+
+      auto callUpvaluesReg = cc.newGpx();
+      cc.mov(callUpvaluesReg, (uint64_t)&closeUpvalues);
+      InvokeNode* call_closeUpValues;
+      cc.invoke(&call_closeUpValues, callUpvaluesReg, FuncSignatureT<void, Value*>());
+      call_closeUpValues->setArg(0, slotsReg);
+
+      // vm.frameCount--;
+      auto frameCountReg = cc.newGpw();
+      auto frameCountAddrReg = cc.newUIntPtr();
+      cc.mov(frameCountAddrReg, (uint64_t)&vm.frameCount);
+      cc.ldr(frameCountReg, a64::Mem(frameCountAddrReg));
+      cc.sub(frameCountReg, frameCountReg, 1);
+      cc.str(frameCountReg, a64::Mem(frameCountAddrReg));
 
       PEEK(resultReg, 0);
       POP();
+      FLUSH_REGISTER_CACHE();
 
-      // Extra pop if root function
+      auto retReg = cc.newGpx();
+      cc.mov(retReg, INTERPRET_OK);
+      auto frameCountNot0 = cc.newLabel();
+      cc.cbnz(frameCountReg, frameCountNot0);
+
+      // if frame count == 0
       POP();
+      cc.ret(retReg);
+
+      // otherwise
+      cc.bind(frameCountNot0);
+      // vm.stackTop = frame->slots;
+      cc.str(slotsReg, a64::Mem(stackTopPtrReg));
+      PUSH_REG(resultReg);
+      FLUSH_REGISTER_CACHE();
+      cc.ret(retReg);
+
       done = true;
       break;
     }

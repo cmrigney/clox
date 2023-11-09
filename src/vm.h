@@ -69,7 +69,9 @@ EXPORT Value peek(int distance);
 EXPORT Value callLoxCode(const char* name, Value *receiver, int argCount, Value *args);
 EXPORT void mutateConcatenate();
 EXPORT void concatenate();
+EXPORT void closeUpvalues(Value* last);
 EXPORT bool callModule(ObjClosure *closure, int argCount);
 EXPORT ObjInstance *createObjectInstance();
+EXPORT bool callValue(Value callee, int argCount);
 
 #endif

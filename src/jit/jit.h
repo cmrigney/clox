@@ -6,7 +6,7 @@
 #include "object.h"
 #include "vm.h"
 
-typedef void (*JittedFn)(CallFrame *frame);
+typedef InterpretResult (*JittedFn)(CallFrame *frame);
 
 extern bool jitEnabled;
 
