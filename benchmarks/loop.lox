@@ -1,9 +1,14 @@
 var start = clock();
 
-var total = 0;
-for(var i = 0; i <= 100000000; i = i + 1) {
-  total = total + i;
+fun doLoop() {
+  var total = 0;
+  for(var i = 0; i <= 100000000; i = i + 1) {
+    total = total + i;
+  }
+  return total;
 }
+
+var total = doLoop();
 
 var diff = clock() - start;
 logln("Total", total);

@@ -27,8 +27,6 @@ class CloxJit {
 
     asmjit::JitRuntime rt;
 
-    asmjit::CodeHolder code;
-
     std::vector<JittedFn> jittedFns;
 };
 

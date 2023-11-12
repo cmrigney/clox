@@ -51,23 +51,8 @@ static void printStack(Chunk *chunk, uint64_t offset) {
 }
 #endif
 
-static Value callHandler(Value callee, int argCount) {
-  if(IS_OBJ(callee)) {
-    if(OBJ_TYPE(callee) == OBJ_NATIVE) {
-      NativeFn native = AS_NATIVE(callee);
-      return native(NULL, argCount, vm.stackTop - argCount);
-    }
-  }
-  return NIL_VAL; // TODO handle other cases
-}
-
 CloxJit::CloxJit() {
   logger.setFile(stdout);
-  code.init(rt.environment(), rt.cpuFeatures());
-  if(getenv("CLOX_LOG_JIT")) {
-    code.setLogger(&logger);
-  }
-  code.setErrorHandler(&myErrorHandler);
 }
 
 CloxJit::~CloxJit() {
@@ -122,9 +107,9 @@ static std::map<int, Label> buildJumpTable(ObjFunction *function, a64::Compiler 
       SKIP_OP(OP_METHOD, 1)
       case OP_CLOSURE: { // closure needs to count args
         uint8_t constant = function->chunk.code[i + 1];
-        ObjFunction *function = AS_FUNCTION(function->chunk.constants.values[constant]);
+        ObjFunction *fn = AS_FUNCTION(function->chunk.constants.values[constant]);
         i += 1;
-        for (int j = 0; j < function->upvalueCount; j++)
+        for (int j = 0; j < fn->upvalueCount; j++)
         {
           // isLocal and index
           i += 2;
@@ -136,12 +121,20 @@ static std::map<int, Label> buildJumpTable(ObjFunction *function, a64::Compiler 
         continue;
     }
 
-    #undef SKIP_OK
+    #undef SKIP_OP
   }
   return jumpTable;
 }
 
 JittedFn CloxJit::jit(ObjClosure *closure) {
+  CodeHolder code;
+
+  code.init(rt.environment(), rt.cpuFeatures());
+  if(getenv("CLOX_LOG_JIT")) {
+    code.setLogger(&logger);
+  }
+  code.setErrorHandler(&myErrorHandler);
+
   auto chunk = &closure->function->chunk;
   auto ip = chunk->code;
 
@@ -171,6 +164,7 @@ JittedFn CloxJit::jit(ObjClosure *closure) {
 
   auto slotBasePtr = cc.newUIntPtr();
   cc.add(slotBasePtr, callFrameReg, offsetof(CallFrame, slots));
+  cc.ldr(slotBasePtr, a64::Mem(slotBasePtr));
 
   int registerStackTop = 0;
   a64::Gp registerStack[256];
@@ -273,12 +267,14 @@ if(registerStackTop % 2 == 1) { \
 
 #define READ_CONSTANT() \
     (constants[READ_BYTE()])
-  
-  bool done = false;
 
+#define PEEK_COMPILE_CONSTANT() \
+    (chunk->constants.values[*ip])
+  
   for (;;)
   {
-    if(done) {
+    // After all code is compiled, break
+    if(ip - chunk->code >= chunk->count) {
       break;
     }
 
@@ -296,6 +292,8 @@ if(registerStackTop % 2 == 1) { \
     cc.invoke(&call_printStack, printStackReg, FuncSignatureT<void, Chunk*, uint64_t>());
     call_printStack->setArg(0, (uint64_t)chunk);
     call_printStack->setArg(1, (uint64_t)(ip - chunk->code));
+
+    // printf("Jitting: %d\n", *ip);
     #endif
 
     auto op = *ip++;
@@ -407,6 +405,28 @@ if(registerStackTop % 2 == 1) { \
       PUSH_REG(a);
       break;
     }
+    case OP_LESS: {
+      // TODO verify a number
+      PEEK(b, 0);
+      POP();
+      PEEK(a, 0);
+      POP();
+      auto va = cc.newVecD();
+      auto vb = cc.newVecD();
+      // Number conversion is bit for bit
+      cc.mov(va.d(0), a);
+      cc.mov(vb.d(0), b);
+
+      auto trueReg = cc.newGpx();
+      auto falseReg = cc.newGpx();
+      cc.ldr(trueReg, TRUE_VAL_MEM);
+      cc.ldr(falseReg, FALSE_VAL_MEM);
+      cc.fcmpe(va, vb);
+      cc.csel(a, trueReg, falseReg, a64::CondCode::kLT);
+
+      PUSH_REG(a);
+      break;
+    }
     case OP_NOT: {
       PEEK(a, 0);
       POP();
@@ -436,22 +456,16 @@ if(registerStackTop % 2 == 1) { \
       PEEK(calleeReg, argCount);
 
       auto callHandlerReg = cc.newGpx();
-      cc.mov(callHandlerReg, (uint64_t)&callHandler);
+      cc.mov(callHandlerReg, (uint64_t)&callValue);
       InvokeNode* call_callHandler;
 
-      cc.invoke(&call_callHandler, callHandlerReg, FuncSignatureT<Value, Value, int>());
+      cc.invoke(&call_callHandler, callHandlerReg, FuncSignatureT<bool, Value, int>());
       call_callHandler->setArg(0, calleeReg);
       call_callHandler->setArg(1, argCount);
-      auto resultReg = cc.newGpx();
+      auto resultReg = cc.newGpw();
       call_callHandler->setRet(0, resultReg);
 
-      // TODO this could be make more efficient with a POP(argCount + 1)
-      for(int i = 0; i < argCount; i++) {
-        POP(); // pop args
-      }
-      POP(); // pop fn
-
-      PUSH_REG(resultReg);
+      // TODO return runtime error if false result
       break;
     }
     case OP_JUMP: {
@@ -572,17 +586,98 @@ if(registerStackTop % 2 == 1) { \
       PUSH_REG(a);
       break;
     }
+    case OP_NEGATE: {
+      // TODO we can't assume numbers
+      PEEK(a, 0);
+      POP();
+      auto va = cc.newVecD();
+      cc.mov(va.d(0), a);
+      cc.fneg(va, va);
+      cc.mov(a, va.d(0));
+
+      PUSH_REG(a);
+      break;
+    }
+    case OP_CLOSURE: {
+      ObjFunction *function = AS_FUNCTION(PEEK_COMPILE_CONSTANT());
+
+      auto constant = READ_CONSTANT();
+      auto constantReg = cc.newGpx();
+      auto functionReg = cc.newGpx();
+      auto qnanBits = cc.newGpx();
+      cc.mov(qnanBits, ~(SIGN_BIT | QNAN));
+      cc.ldr(constantReg, constant);
+      // AS_OBJ
+      cc.and_(functionReg, constantReg, qnanBits);
+
+      // Create new closure and push it
+      auto newClosureReg = cc.newGpx();
+      cc.mov(newClosureReg, (uint64_t)&newClosure);
+      InvokeNode* call_newClosure;
+      cc.invoke(&call_newClosure, newClosureReg, FuncSignatureT<ObjClosure*, ObjFunction*>());
+      call_newClosure->setArg(0, functionReg);
+      auto closureReg = cc.newGpx();
+      call_newClosure->setRet(0, closureReg);
+
+      auto closureObjReg = cc.newGpx();
+      // OBJ_VAL
+      // Because orr doesn't work for some reason
+      cc.orn(closureObjReg, closureReg, qnanBits);
+      PUSH_REG(closureObjReg);
+      FLUSH_REGISTER_CACHE();
+
+      for(int i = 0; i < function->upvalueCount; i++) {
+        auto isLocal = READ_BYTE();
+        auto index = READ_BYTE();
+        auto isLocalReg = cc.newGpx();
+        auto indexReg = cc.newGpx();
+        cc.mov(isLocalReg, isLocal);
+
+        auto upvalueReg = cc.newGpx();
+        auto closureUpvaluePtrReg = cc.newGpx();
+        cc.ldr(closureUpvaluePtrReg, a64::Mem(closureReg, offsetof(ObjClosure, upvalues)));
+
+        auto elseBranch = cc.newLabel();
+        auto endLabel = cc.newLabel();
+
+        cc.cbz(isLocalReg, elseBranch);
+
+        // add index * 8 to slotBasePtr
+        cc.add(indexReg, slotBasePtr, index, 3);
+
+        auto captureUpvalueReg = cc.newGpx();
+        cc.mov(captureUpvalueReg, (uint64_t)&captureUpvalue);
+        InvokeNode* call_captureUpvalue;
+        cc.invoke(&call_captureUpvalue, captureUpvalueReg, FuncSignatureT<ObjUpvalue*, Value*>());
+        call_captureUpvalue->setArg(0, indexReg);
+        call_captureUpvalue->setRet(0, upvalueReg);
+
+        // closure->upvalues[i] = upvalue
+        cc.str(upvalueReg, a64::Mem(closureUpvaluePtrReg, i * sizeof(ObjUpvalue*)));
+
+        cc.b(endLabel);
+
+        cc.bind(elseBranch);
+        // closure->upvalues[i] = frame->closure->upvalues[index]
+        auto currentClosureUpvaluePtr = closure->upvalues; // Closure of current frame, safe at compile time because it won't change
+        auto currentClosureUpvaluePtrReg = cc.newUIntPtr();
+        cc.mov(currentClosureUpvaluePtrReg, (uint64_t)currentClosureUpvaluePtr);
+        cc.ldr(upvalueReg, a64::Mem(currentClosureUpvaluePtrReg, index * sizeof(ObjUpvalue*)));
+        cc.str(upvalueReg, a64::Mem(closureUpvaluePtrReg, i * sizeof(ObjUpvalue*)));
+
+        cc.bind(endLabel);
+      }
+
+      break;
+    }
     case OP_RETURN: {
 
       // closeUpvalues(frame->slots);
-      auto slotsReg = cc.newGpx();
-      cc.add(slotsReg, callFrameReg, offsetof(CallFrame, slots));
-
       auto callUpvaluesReg = cc.newGpx();
       cc.mov(callUpvaluesReg, (uint64_t)&closeUpvalues);
       InvokeNode* call_closeUpValues;
       cc.invoke(&call_closeUpValues, callUpvaluesReg, FuncSignatureT<void, Value*>());
-      call_closeUpValues->setArg(0, slotsReg);
+      call_closeUpValues->setArg(0, slotBasePtr);
 
       // vm.frameCount--;
       auto frameCountReg = cc.newGpw();
@@ -608,12 +703,11 @@ if(registerStackTop % 2 == 1) { \
       // otherwise
       cc.bind(frameCountNot0);
       // vm.stackTop = frame->slots;
-      cc.str(slotsReg, a64::Mem(stackTopPtrReg));
+      cc.str(slotBasePtr, a64::Mem(stackTopPtrReg));
       PUSH_REG(resultReg);
       FLUSH_REGISTER_CACHE();
       cc.ret(retReg);
 
-      done = true;
       break;
     }
     default:
@@ -624,6 +718,7 @@ if(registerStackTop % 2 == 1) { \
 
 #undef READ_BYTE
 #undef READ_CONSTANT
+#undef PEEK_COMPILE_CONSTANT
 #undef PUSH_SETUP
 #undef PUSH_MEM
 #undef PUSH_REG

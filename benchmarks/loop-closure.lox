@@ -1,0 +1,31 @@
+var start = clock();
+
+fun doPart1() {
+  var total = 0;
+  for(var i = 0; i <= 100; i = i + 1) {
+    total = total + i;
+  }
+  return total;
+}
+
+fun doPart2() {
+  var total = 0;
+  for(var i = 0; i <= 1000; i = i + 1) {
+    total = total + doPart1();
+  }
+  return total;
+}
+
+fun doLoop() {
+  var total = 0;
+  for(var i = 0; i <= 1000; i = i + 1) {
+    total = total + doPart2();
+  }
+  return total;
+}
+
+var total = doLoop();
+
+var diff = clock() - start;
+logln("Total", total);
+logln(diff, "Seconds");

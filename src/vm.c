@@ -272,6 +272,7 @@ bool callValue(Value callee, int argCount) {
           if(!closure->jitFn) {
             closure->jitFn = jitLoxClosure(closure);
           }
+          // TODO could have intepret error
           ((JittedFn)closure->jitFn)(&vm.frames[vm.frameCount - 1]);
         }
         return true;
@@ -372,7 +373,7 @@ static bool bindNativeFn(Obj* obj, ObjString* name) {
   return true;
 }
 
-static ObjUpvalue* captureUpvalue(Value* local) {
+ObjUpvalue* captureUpvalue(Value* local) {
   ObjUpvalue* prevUpvalue = NULL;
   ObjUpvalue* upvalue = vm.openUpvalues;
   while (upvalue != NULL && upvalue->location > local) {
@@ -817,8 +818,7 @@ InterpretResult interpret(const char* source) {
     if(!closure->jitFn) {
       closure->jitFn = jitLoxClosure(closure);
     }
-    ((JittedFn)(closure->jitFn))(&vm.frames[vm.frameCount - 1]);
-    return INTERPRET_OK;
+    return ((JittedFn)(closure->jitFn))(&vm.frames[vm.frameCount - 1]);
   }
   else {
     return runFrame(&vm.frames[vm.frameCount - 1]);

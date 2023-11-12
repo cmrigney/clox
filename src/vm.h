@@ -73,5 +73,6 @@ EXPORT void closeUpvalues(Value* last);
 EXPORT bool callModule(ObjClosure *closure, int argCount);
 EXPORT ObjInstance *createObjectInstance();
 EXPORT bool callValue(Value callee, int argCount);
+EXPORT ObjUpvalue* captureUpvalue(Value* local);
 
 #endif
