@@ -9,10 +9,14 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/clox",
-      "args": ["benchmarks/loop-simple.lox"],
+      "args": ["benchmarks/trees.lox"],
       "stopAtEntry": false,
+      "preLaunchTask": "Make Debug Build",
       "cwd": "${workspaceFolder}",
-      "environment": [],
+      "environment": [{
+        "name": "CLOX_JIT",
+        "value": "1"
+      }],
       "externalConsole": false,
       "MIMode": "lldb"
     },
