@@ -38,6 +38,11 @@ static void defineGlobal(Table *globals, ObjString *name, Value value) {
   tableSet(globals, name, value);
 }
 
+static void debugExecOp(int op) {
+  printf("Executing op: %d\n", op);
+  fflush(stdout);
+}
+
 #ifdef DEBUG_TRACE_EXECUTION
 static void printStack(Chunk *chunk, uint64_t offset) {
   printf("          ");
@@ -292,8 +297,17 @@ if(registerStackTop % 2 == 1) { \
     cc.invoke(&call_printStack, printStackReg, FuncSignatureT<void, Chunk*, uint64_t>());
     call_printStack->setArg(0, (uint64_t)chunk);
     call_printStack->setArg(1, (uint64_t)(ip - chunk->code));
+    #endif
 
-    // printf("Jitting: %d\n", *ip);
+    // #define PRINT_OP_CODES
+
+    #ifdef PRINT_OP_CODES
+    printf("Jitting: %d\n", *ip);
+    auto debugExecOpReg = cc.newGpx();
+    cc.mov(debugExecOpReg, (uint64_t)&debugExecOp);
+    InvokeNode* call_debugExecOp;
+    cc.invoke(&call_debugExecOp, debugExecOpReg, FuncSignatureT<void, int>());
+    call_debugExecOp->setArg(0, (int)*ip);
     #endif
 
     auto op = *ip++;
@@ -427,6 +441,20 @@ if(registerStackTop % 2 == 1) { \
       PUSH_REG(a);
       break;
     }
+    case OP_EQUAL: {
+      PEEK(b, 0);
+      POP();
+      PEEK(a, 0);
+      POP();
+      auto trueReg = cc.newGpx();
+      auto falseReg = cc.newGpx();
+      cc.ldr(trueReg, TRUE_VAL_MEM);
+      cc.ldr(falseReg, FALSE_VAL_MEM);
+      cc.cmp(a, b);
+      cc.csel(a, trueReg, falseReg, a64::CondCode::kEQ);
+      PUSH_REG(a);
+      break;
+    }
     case OP_NOT: {
       PEEK(a, 0);
       POP();
@@ -466,6 +494,117 @@ if(registerStackTop % 2 == 1) { \
       call_callHandler->setRet(0, resultReg);
 
       // TODO return runtime error if false result
+      break;
+    }
+    case OP_GET_PROPERTY: {
+      // TODO add support for array and string native methods
+      // TODO verify is instance
+
+      auto constant = READ_CONSTANT();
+      auto keyReg = cc.newGpx();
+      auto qnanBits = cc.newGpx();
+      cc.mov(qnanBits, ~(SIGN_BIT | QNAN));
+      cc.ldr(keyReg, constant);
+      // AS_OBJ
+      cc.and_(keyReg, keyReg, qnanBits);
+
+      PEEK(instanceReg, 0);
+      // AS_OBJ
+      cc.and_(instanceReg, instanceReg, qnanBits);
+
+      auto fieldsPtrReg = cc.newGpx();
+      cc.add(fieldsPtrReg, instanceReg, offsetof(ObjInstance, fields));
+
+      auto stackMem = cc.newStack(sizeof(Value), 8);
+      auto tableGetNotFoundLabel = cc.newLabel();
+      auto endLabel = cc.newLabel();
+      auto valuePtrReg = cc.newGpx();
+      auto error = cc.loadAddressOf(valuePtrReg, stackMem);
+      if(error) {
+        printf("Error: %s\n", DebugUtils::errorAsString(error));
+        exit(1);
+      }
+      
+      auto resultReg = cc.newGpw();
+      auto tableGetReg = cc.newGpx();
+      cc.mov(tableGetReg, (uint64_t)&tableGet);
+      InvokeNode *call_tableGet;
+      cc.invoke(&call_tableGet, tableGetReg, FuncSignatureT<bool, Table*, ObjString*, Value*>());
+      call_tableGet->setArg(0, fieldsPtrReg);
+      call_tableGet->setArg(1, keyReg);
+      call_tableGet->setArg(2, valuePtrReg);
+      call_tableGet->setRet(0, resultReg);
+
+      FLUSH_REGISTER_CACHE(); // for garbage collector
+
+      cc.cbz(resultReg, tableGetNotFoundLabel);
+
+      auto valueReg = cc.newGpx();
+      cc.ldr(valueReg, stackMem);
+      POP();
+      PUSH_REG(valueReg);
+      cc.b(endLabel);
+
+      cc.bind(tableGetNotFoundLabel);
+
+      auto klassReg = cc.newGpx();
+      cc.ldr(klassReg, a64::Mem(instanceReg, offsetof(ObjInstance, klass)));
+
+      auto bindMethodReg = cc.newGpx();
+      cc.mov(bindMethodReg, (uint64_t)&bindMethod);
+      InvokeNode *call_bindMethod;
+      cc.invoke(&call_bindMethod, bindMethodReg, FuncSignatureT<bool, ObjClass*, ObjString*>());
+      call_bindMethod->setArg(0, klassReg);
+      call_tableGet->setArg(1, keyReg);
+      call_bindMethod->setRet(0, resultReg);
+
+      // TODO runtime error if result is false
+      cc.bind(endLabel);
+      break;
+    }
+    case OP_SET_PROPERTY: {
+      // TODO verify is instance
+
+      // For some reason the flush has to come first but idk why. Otherwise it seg faults.
+      FLUSH_REGISTER_CACHE(); // for garbage collector
+
+      auto constant = READ_CONSTANT();
+      auto keyReg = cc.newGpx();
+      auto qnanBits = cc.newGpx();
+      cc.mov(qnanBits, ~(SIGN_BIT | QNAN));
+      cc.ldr(keyReg, constant);
+      // AS_OBJ
+      cc.and_(keyReg, keyReg, qnanBits);
+
+      int opCode = *(ip - 1);
+      PEEK(instanceReg, 1);
+      PEEK(valueReg, 0);
+      // AS_OBJ
+      cc.and_(instanceReg, instanceReg, qnanBits);
+
+      auto fieldsPtrReg = cc.newGpx();
+      cc.add(fieldsPtrReg, instanceReg, offsetof(ObjInstance, fields));
+
+      auto tableSetReg = cc.newGpx();
+      cc.mov(tableSetReg, (uint64_t)&tableSet);
+      InvokeNode *call_tableSet;
+      cc.invoke(&call_tableSet, tableSetReg, FuncSignatureT<bool, Table*, ObjString*, Value>());
+      call_tableSet->setArg(0, fieldsPtrReg);
+      call_tableSet->setArg(1, keyReg);
+      call_tableSet->setArg(2, valueReg);
+
+      POP();
+      POP();
+
+      if(opCode == OP_SET_PROPERTY_SHADOWED) {
+        // OBJ_VAL
+        cc.orn(instanceReg, instanceReg, qnanBits);
+        PUSH_REG(instanceReg);
+      }
+      else {
+        PUSH_REG(valueReg);
+      }
+
       break;
     }
     case OP_JUMP: {
@@ -667,6 +806,95 @@ if(registerStackTop % 2 == 1) { \
 
         cc.bind(endLabel);
       }
+
+      break;
+    }
+    case OP_CLASS: {
+      FLUSH_REGISTER_CACHE(); // for garbage collection
+      auto constant = READ_CONSTANT();
+      auto constantReg = cc.newGpx();
+      auto qnanBits = cc.newGpx();
+      cc.mov(qnanBits, ~(SIGN_BIT | QNAN));
+      cc.ldr(constantReg, constant);
+      // AS_OBJ
+      cc.and_(constantReg, constantReg, qnanBits);
+
+      auto newClassReg = cc.newGpx();
+      cc.mov(newClassReg, (uint64_t)&newClass);
+      InvokeNode* class_newClass;
+      cc.invoke(&class_newClass, newClassReg, FuncSignatureT<ObjClass*, ObjString*>());
+      class_newClass->setArg(0, constantReg);
+      auto classReg = cc.newGpx();
+      class_newClass->setRet(0, classReg);
+
+      // OBJ_VAL
+      // Because orr doesn't work for some reason
+      cc.orn(classReg, classReg, qnanBits);
+
+      PUSH_REG(classReg);
+      break;
+    }
+    case OP_METHOD: {
+      FLUSH_REGISTER_CACHE(); // for garbage collection
+
+      auto constant = READ_CONSTANT();
+      auto constantReg = cc.newGpx();
+      auto qnanBits = cc.newGpx();
+      cc.mov(qnanBits, ~(SIGN_BIT | QNAN));
+      cc.ldr(constantReg, constant);
+      // AS_OBJ
+      cc.and_(constantReg, constantReg, qnanBits);
+
+      auto methodReg = cc.newGpx();
+      cc.mov(methodReg, (uint64_t)&defineMethod);
+      InvokeNode* call_defineMethod;
+      cc.invoke(&call_defineMethod, methodReg, FuncSignatureT<void, ObjString*>());
+      call_defineMethod->setArg(0, constantReg);
+
+      break;
+    }
+    case OP_INVOKE: {
+      FLUSH_REGISTER_CACHE(); // for garbage collection
+
+      auto constant = READ_CONSTANT();
+      auto constantReg = cc.newGpx();
+      auto qnanBits = cc.newGpx();
+      cc.mov(qnanBits, ~(SIGN_BIT | QNAN));
+      cc.ldr(constantReg, constant);
+      // AS_OBJ
+      cc.and_(constantReg, constantReg, qnanBits);
+
+      int argCount = READ_BYTE();
+      auto argCountReg = cc.newGpw();
+      cc.mov(argCountReg, argCount);
+
+      auto invokeReg = cc.newGpx();
+      cc.mov(invokeReg, (uint64_t)&invoke);
+      InvokeNode* call_invoke;
+      cc.invoke(&call_invoke, invokeReg, FuncSignatureT<bool, ObjString*, int>());
+      call_invoke->setArg(0, constantReg);
+      call_invoke->setArg(1, argCountReg);
+      auto resultReg = cc.newGpw();
+      call_invoke->setRet(0, resultReg);
+
+      // TODO return runtime error if false result
+      break;
+    }
+    case OP_PRINT: {
+      PEEK(a, 0);
+      POP();
+
+      auto printValueReg = cc.newGpx();
+      cc.mov(printValueReg, (uint64_t)&printValue);
+      InvokeNode* call_printValue;
+      cc.invoke(&call_printValue, printValueReg, FuncSignatureT<void, Value>());
+      call_printValue->setArg(0, a);
+
+      auto printfReg = cc.newGpx();
+      cc.mov(printfReg, (uint64_t)&printf);
+      InvokeNode* call_printf;
+      cc.invoke(&call_printf, printfReg, FuncSignatureT<int, const char*>());
+      call_printf->setArg(0, (uint64_t)"\n");
 
       break;
     }

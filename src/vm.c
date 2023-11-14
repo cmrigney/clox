@@ -19,6 +19,14 @@ VM vm;
 static bool call(ObjClosure* closure, int argCount);
 bool callValue(Value callee, int argCount);
 
+// TODO could have intepret error
+#define JIT_RUN(closure) if(jitEnabled) { \
+  if(!(closure)->jitFn) { \
+    (closure)->jitFn = jitLoxClosure(closure); \
+  } \
+  ((JittedFn)(closure)->jitFn)(&vm.frames[vm.frameCount - 1]); \
+}
+
 ObjInstance *createObjectInstance() {
   Value objClassVal;
   if(!tableGet(&vm.globals, copyString("Object", 6), &objClassVal)) {
@@ -247,7 +255,11 @@ bool callValue(Value callee, int argCount) {
       case OBJ_BOUND_METHOD: {
         ObjBoundMethod* bound = AS_BOUND_METHOD(callee);
         vm.stackTop[-argCount - 1] = bound->receiver;
-        return call(bound->method, argCount);
+        if(!call(bound->method, argCount)) {
+          return false;
+        }
+        JIT_RUN(bound->method);
+        return true;
       }
       case OBJ_CLASS: {
         ObjClass* klass = AS_CLASS(callee);
@@ -255,7 +267,12 @@ bool callValue(Value callee, int argCount) {
         Value initializer;
         if (tableGet(&klass->methods, vm.initString,
                      &initializer)) {
-          return call(AS_CLOSURE(initializer), argCount);
+          ObjClosure *initializerClosure = AS_CLOSURE(initializer);
+          if(!call(initializerClosure, argCount)) {
+            return false;
+          }
+          JIT_RUN(initializerClosure);
+          return true;
         } else if (argCount != 0) {
           runtimeError("Expected 0 arguments but got %d.",
                        argCount);
@@ -268,13 +285,7 @@ bool callValue(Value callee, int argCount) {
         if(!call(closure, argCount)) {
           return false;
         }
-        if(jitEnabled) {
-          if(!closure->jitFn) {
-            closure->jitFn = jitLoxClosure(closure);
-          }
-          // TODO could have intepret error
-          ((JittedFn)closure->jitFn)(&vm.frames[vm.frameCount - 1]);
-        }
+        JIT_RUN(closure);
         return true;
       }
       case OBJ_NATIVE: {
@@ -311,12 +322,17 @@ static bool invokeFromClass(ObjClass* klass, ObjString* name,
     return false;
   }
   if(IS_CLOSURE(method)) {
-    return call(AS_CLOSURE(method), argCount);
+    ObjClosure* methodClosure = AS_CLOSURE(method);
+    if(!call(methodClosure, argCount)) {
+      return false;
+    }
+    JIT_RUN(methodClosure);
+    return true;
   }
   return callValue(method, argCount);
 }
 
-static bool invoke(ObjString* name, int argCount) {
+bool invoke(ObjString* name, int argCount) {
   Value receiver = peek(argCount);
 
   // Handle native methods
@@ -346,7 +362,7 @@ static bool invoke(ObjString* name, int argCount) {
   return invokeFromClass(instance->klass, name, argCount);
 }
 
-static bool bindMethod(ObjClass* klass, ObjString* name) {
+bool bindMethod(ObjClass* klass, ObjString* name) {
   Value method;
   if (!tableGet(&klass->methods, name, &method)) {
     runtimeError("Undefined property '%s'.", name->chars);
@@ -407,7 +423,7 @@ void closeUpvalues(Value* last) {
   }
 }
 
-static void defineMethod(ObjString* name) {
+void defineMethod(ObjString* name) {
   Value method = peek(0);
   ObjClass* klass = AS_CLASS(peek(1));
   tableSet(&klass->methods, name, method);

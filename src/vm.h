@@ -74,5 +74,8 @@ EXPORT bool callModule(ObjClosure *closure, int argCount);
 EXPORT ObjInstance *createObjectInstance();
 EXPORT bool callValue(Value callee, int argCount);
 EXPORT ObjUpvalue* captureUpvalue(Value* local);
+EXPORT void defineMethod(ObjString* name);
+EXPORT bool invoke(ObjString* name, int argCount);
+EXPORT bool bindMethod(ObjClass* klass, ObjString* name);
 
 #endif
