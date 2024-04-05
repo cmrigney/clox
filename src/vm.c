@@ -165,6 +165,7 @@ void initVM() {
   defineNative("setInstanceFieldValueByKey", setInstanceFieldValueByKey, false);
   defineNative("getEnvVar", getEnvVarNative, false);
   defineNative("getMemStats", getMemStatsNative, false);
+  defineNative("eval", evalNative, true);
 
   defineNative("systemImport", systemImportNative, true);
 

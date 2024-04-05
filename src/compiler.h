@@ -6,6 +6,7 @@
 
 ObjFunction* compile(const char* source);
 ObjFunction* compileModule(const char* source);
+ObjFunction* compileEval(const char* source);
 void markCompilerRoots();
 
 #endif

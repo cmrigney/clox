@@ -982,6 +982,25 @@ ObjFunction* compile(const char* source) {
   return parser.hadError ? NULL : function;
 }
 
+ObjFunction* compileEval(const char* source) {
+  initScanner(source);
+  Compiler compiler;
+  initCompiler(&compiler, TYPE_SCRIPT);
+  beginScope();
+
+  parser.hadError = false;
+  parser.panicMode = false;
+
+  advance();
+
+  while (!match(TOKEN_EOF)) {
+    declaration();
+  }
+
+  ObjFunction* function = endCompiler();
+  return parser.hadError ? NULL : function;
+}
+
 ObjFunction* compileModule(const char* source) {
   initScanner(source);
   Compiler compiler;

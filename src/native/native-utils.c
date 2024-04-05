@@ -9,6 +9,7 @@
 #include "table.h"
 #include "vm.h"
 #include "memory.h"
+#include "compiler.h"
 
 #ifdef PICO_MODULE
 #include <pico/stdlib.h>
@@ -356,6 +357,45 @@ static inline void setInstanceField(ObjInstance *instance, const char *name, Val
   push(OBJ_VAL(str));
   tableSet(&instance->fields, str, value);
   pop();
+}
+
+// TODO reuse this elsewhere
+static inline void popTimes(int times) {
+  for(int i = 0; i < times; i++) {
+    pop();
+  }
+}
+
+Value evalNative(Value *receiver, int argCount, Value *args) {
+  if(argCount != 1) {
+    // runtimeError("eval() takes exactly 1 argument (%d given).", argCount);
+    popTimes(argCount);
+    return NIL_VAL;
+  }
+  if(!IS_STRING(args[0])) {
+    // runtimeError("eval() argument must be a string.");
+    popTimes(argCount);
+    return NIL_VAL;
+  }
+
+  const char *source = AS_CSTRING(args[0]);
+  ObjFunction *function = compileEval(source);
+
+  // Do this after compileModule() to avoid source being freed early
+  // Similar to callLoxCode(), we need to pop everything off for this native function first
+  popTimes(argCount + 1); // args + native function
+
+  if(function == NULL) {
+    // runtimeError("eval() failed to compile.");
+    push(NIL_VAL);
+    return NIL_VAL;
+  }
+  push(OBJ_VAL(function));
+  ObjClosure* closure = newClosure(function);
+  pop();
+  push(OBJ_VAL(closure));
+  callModule(closure, 0);
+  return NIL_VAL;
 }
 
 Value getMemStatsNative(Value *receiver, int argCount, Value *args) {

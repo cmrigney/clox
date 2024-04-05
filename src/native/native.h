@@ -18,6 +18,8 @@ Value getEnvVarNative(Value *receiver, int argCount, Value *args);
 
 Value getMemStatsNative(Value *receiver, int argCount, Value *args);
 
+Value evalNative(Value *receiver, int argCount, Value *args);
+
 Value getInstanceFields(Value *receiver, int argCount, Value *args);
 Value instanceHasFieldValueByKey(Value *receiver, int argCount, Value *args);
 Value getInstanceFieldValueByKey(Value *receiver, int argCount, Value *args);

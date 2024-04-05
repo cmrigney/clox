@@ -1,0 +1,14 @@
+class Breakfast {
+  init(food) {
+    this.food = food;
+  }
+
+  cook(util) {
+    print "Cooking " + this.food + " with " + util + ".";
+  }
+}
+
+eval("
+Breakfast('eggs').cook('pan');
+Breakfast('bacon').cook('oven');
+");
