@@ -105,7 +105,7 @@ if(ledPin != nil) {
 }
 
 if(module.isW()) {
-  class TCPSocket {
+  class TCPSocket < Object {
     init(socket) {
       this.socket = socket;
     }
@@ -131,7 +131,22 @@ if(module.isW()) {
     }
   }
 
-  class TCPServer {
+  class TCPClient < TCPSocket {
+    init(ip, port, timeout) {
+      this.ip = ip;
+      this.port = port;
+      super.init(module.__tcp_client_connect(ip, port, timeout));
+    }
+
+    connected() {
+      if(this.socket == nil or this.isClosed()) {
+        return false;
+      }
+      return true;
+    }
+  }
+
+  class TCPServer < Object {
     init(port) {
       this.port = port;
       this.socket = module.__tcp_server_create(port);
@@ -177,7 +192,9 @@ if(module.isW()) {
           // Remove server
           didWork = true;
           removeServers.push(server);
-          server.onClose();
+          if(server.has("onClose")) {
+            server.onClose();
+          }
           return;
         }
         if(server.hasBacklog()) {
@@ -185,7 +202,9 @@ if(module.isW()) {
           if(socket != nil) {
             didWork = true;
             this.clientSockets.push(socket);
-            server.onAccept(socket);
+            if(server.has("onAccept")) {
+              server.onAccept(socket);
+            }
           }
         }
       });
@@ -199,14 +218,18 @@ if(module.isW()) {
           // Remove client
           didWork = true;
           removeClients.push(client);
-          client.onClose();
+          if(client.has("onClose")) {
+            client.onClose();
+          }
           return;
         }
         if(client.hasData()) {
           var data = client.read();
           if(data != nil) {
             didWork = true;
-            client.onData(data);
+            if(client.has("onData")) {
+              client.onData(data);
+            }
           }
         }
       });
@@ -390,6 +413,7 @@ if(module.isW()) {
     }
   }
 
+  module.TCPClient = TCPClient;
   module.TCPServer = TCPServer;
   module.SocketManager = SocketManager;
   module.HTTPServer = HTTPServer;

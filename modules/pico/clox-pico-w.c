@@ -25,6 +25,8 @@ typedef struct TCP_CLIENT_SOCKET_PICO_ {
   struct tcp_pcb *client_pcb;
   struct pbuf *recv_packet[MAX_PACKETS];
   bool is_closed;
+  bool connected;
+  ip_addr_t remote_addr;
 } TCP_CLIENT_SOCKET_PICO;
 
 typedef struct TCP_SERVER_SOCKET_PICO_ {
@@ -115,6 +117,7 @@ static int close_client_socket(TCP_CLIENT_SOCKET_PICO *client) {
     client->client_pcb = NULL;
   }
   client->is_closed = true;
+  client->connected = false;
   return err;
 }
 
@@ -267,6 +270,7 @@ static err_t tcp_server_accept(void *arg, struct tcp_pcb *client_pcb, err_t err)
 
   clientSocket->client_pcb = client_pcb;
   clientSocket->server = serverSocket;
+  clientSocket->connected = true;
 
   tcp_arg(clientSocket->client_pcb, clientSocket);
   tcp_sent(clientSocket->client_pcb, tcp_server_sent);
@@ -560,8 +564,88 @@ static Value tcpSocketCloseNative(Value *receiver, int argCount, Value *args) {
   close_client_socket(socket);
   // Don't free, we know it's owned by VM
   cyw43_arch_lwip_end();
-  DEBUG_printf("Server socket closed\n");
+  DEBUG_printf("Client socket closed\n");
   return NIL_VAL;
+}
+
+static err_t tcp_client_connected(void *arg, struct tcp_pcb *tpcb, err_t err) {
+    TCP_CLIENT_SOCKET_PICO *socket = (TCP_CLIENT_SOCKET_PICO*)arg;
+    if (err != ERR_OK) {
+        DEBUG_printf("connect failed %d\n", err);
+        close_client_socket(socket);
+        return err;
+    }
+    socket->connected = true;
+    return ERR_OK;
+}
+
+static Value tcpClientConnectNative(Value *receiver, int argCount, Value *args) {
+  if(argCount != 3) {
+    // runtimeError("tcpClientConnectNative() takes exactly 3 arguments (%d given).", argCount);
+    return NIL_VAL;
+  }
+  if(!IS_STRING(args[0])) {
+    // runtimeError("tcpClientConnectNative() argument 1 must be a string.");
+    return NIL_VAL;
+  }
+  if(!IS_NUMBER(args[1])) {
+    // runtimeError("tcpClientConnectNative() argument 2 must be a number.");
+    return NIL_VAL;
+  }
+  if(!IS_NUMBER(args[2])) {
+    // runtimeError("tcpClientConnectNative() argument 3 must be a number.");
+    return NIL_VAL;
+  }
+  const char *ip = AS_CSTRING(args[0]);
+  uint16_t port = (uint16_t)AS_NUMBER(args[1]);
+  double timeout = AS_NUMBER(args[2]);
+  TCP_CLIENT_SOCKET_PICO *clientSocket = ALLOCATE(TCP_CLIENT_SOCKET_PICO, 1);
+  memset(clientSocket, 0, sizeof(TCP_CLIENT_SOCKET_PICO));
+
+  ip4addr_aton(ip, &clientSocket->remote_addr);
+  clientSocket->client_pcb = tcp_new_ip_type(IP_GET_TYPE(&clientSocket->remote_addr));
+
+  tcp_arg(clientSocket->client_pcb, clientSocket);
+  tcp_sent(clientSocket->client_pcb, tcp_server_sent);
+  tcp_recv(clientSocket->client_pcb, tcp_server_recv);
+  tcp_poll(clientSocket->client_pcb, tcp_server_poll, POLL_TIME_S * 2);
+  tcp_err(clientSocket->client_pcb, tcp_server_err);
+
+  // cyw43_arch_lwip_begin/end should be used around calls into lwIP to ensure correct locking.
+  // You can omit them if you are in a callback from lwIP. Note that when using pico_cyw_arch_poll
+  // these calls are a no-op and can be omitted, but it is a good practice to use them in
+  // case you switch the cyw43_arch type later.
+  cyw43_arch_lwip_begin();
+  err_t err = tcp_connect(clientSocket->client_pcb, &clientSocket->remote_addr, port, tcp_client_connected);
+  cyw43_arch_lwip_end();
+  if(err != ERR_OK) {
+    close_client_socket(clientSocket);
+    FREE(TCP_CLIENT_SOCKET_PICO, clientSocket);
+    // runtimeError("tcpClientConnectNative() failed to connect to %s:%d", ip, port);
+    return NIL_VAL;
+  }
+
+  #define CLOCK() ((double)to_us_since_boot(get_absolute_time()) / 1000000.0)
+
+  double start = CLOCK();
+  while(!clientSocket->client_pcb->connected && CLOCK() - start < timeout) {
+    cyw43_arch_poll();
+    sleep_us(10);
+  }
+
+  #undef CLOCK
+
+  if(!clientSocket->client_pcb->connected) {
+    close_client_socket(clientSocket);
+    FREE(TCP_CLIENT_SOCKET_PICO, clientSocket);
+    // runtimeError("tcpClientConnectNative() timed out connecting to %s:%d", ip, port);
+    return NIL_VAL;
+  }
+
+  clientSocket->connected = true;
+
+  ObjRef *clientSocketRef = newRef("client-socket", "client-socket", clientSocket, dispose_client_socket);
+  return OBJ_VAL(clientSocketRef);
 }
 
 static Value pollNetworkNative(Value *receiver, int argCount, Value *args) {
@@ -581,6 +665,7 @@ void registerPicoWFunctions() {
   registerNativeMethod("__tcp_server_accept", tcpServerAcceptNative);
   registerNativeMethod("__tcp_server_is_closed", tcpServerIsClosedNative);
   registerNativeMethod("__tcp_server_close", tcpServerCloseNative);
+  registerNativeMethod("__tcp_client_connect", tcpClientConnectNative);
   registerNativeMethod("__tcp_socket_has_data", tcpSocketHasDataNative);
   registerNativeMethod("__tcp_socket_read", tcpSocketReadNative);
   registerNativeMethod("__tcp_socket_write", tcpSocketWriteNative);
