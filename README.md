@@ -86,3 +86,37 @@ Connect to repl via minicom:
 ```
 minicom -b 115200 -o -D /dev/tty.usbmodem21201
 ```
+
+# Running the MCP server
+
+Build the server:
+```
+docker build -t clox-mcp --target mcp .
+```
+
+Configure your client to run the server.
+
+**gordon-mcp.yml**
+```
+services:
+  clox_mcp:
+    image: clox-mcp
+```
+
+
+**claude_desktop_config.json**
+```
+{
+  "mcpServers": {
+    "mcp_clox": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "clox-mcp"
+      ]
+    },
+  }
+}
+```

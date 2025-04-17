@@ -20,3 +20,4 @@ autogen
 .DS_Store
 local-testing
 .cortex-debug*
+node_modules/
