@@ -1,3 +1,0 @@
-services:
-  clox_mcp:
-    image: clox-mcp
