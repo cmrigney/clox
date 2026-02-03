@@ -77,5 +77,6 @@ EXPORT ObjUpvalue* captureUpvalue(Value* local);
 EXPORT void defineMethod(ObjString* name);
 EXPORT bool invoke(ObjString* name, int argCount);
 EXPORT bool bindMethod(ObjClass* klass, ObjString* name);
+EXPORT bool invokeFromClass(ObjClass* klass, ObjString* name, int argCount);
 
 #endif

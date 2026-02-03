@@ -21,8 +21,8 @@ target_include_directories(clox PRIVATE src vendor autogen modules vendor/asmjit
 target_compile_options(clox PRIVATE -Werror)
 
 set(ASMJIT_STATIC TRUE)
-include(vendor/asmjit/CMakeLists.txt)
-target_link_libraries(clox asmjit)
+add_subdirectory(vendor/asmjit asmjit)
+target_link_libraries(clox asmjit::asmjit)
 
 if("$ENV{MODULES}" MATCHES "filesystem")
   find_library(FILESYSTEM_MODULE NAMES libcloxfilesystem.a HINTS "modules/filesystem")

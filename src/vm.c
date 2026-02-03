@@ -314,7 +314,7 @@ bool callValue(Value callee, int argCount) {
   return false;
 }
 
-static bool invokeFromClass(ObjClass* klass, ObjString* name,
+bool invokeFromClass(ObjClass* klass, ObjString* name,
                             int argCount) {
   Value method;
   if (!tableGet(&klass->methods, name, &method)) {

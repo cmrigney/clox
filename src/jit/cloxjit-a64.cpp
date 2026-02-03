@@ -397,6 +397,42 @@ if(registerStackTop % 2 == 1) { \
       POP();
       break;
     }
+    case OP_GET_UPVALUE: {
+      uint8_t slot = READ_BYTE();
+      // closure->upvalues[slot]->location points to the value
+      ObjUpvalue** upvaluesArray = closure->upvalues;
+      auto upvaluePtrReg = cc.newUIntPtr();
+      cc.mov(upvaluePtrReg, (uint64_t)&upvaluesArray[slot]);
+      // Load the ObjUpvalue*
+      auto upvalueReg = cc.newGpx();
+      cc.ldr(upvalueReg, a64::Mem(upvaluePtrReg));
+      // Load the location pointer from the upvalue
+      auto locationReg = cc.newGpx();
+      cc.ldr(locationReg, a64::Mem(upvalueReg, offsetof(ObjUpvalue, location)));
+      // Load the actual value from location
+      auto valueReg = cc.newGpx();
+      cc.ldr(valueReg, a64::Mem(locationReg));
+      PUSH_REG(valueReg);
+      break;
+    }
+    case OP_SET_UPVALUE: {
+      uint8_t slot = READ_BYTE();
+      PEEK(valueReg, 0);
+      // closure->upvalues[slot]->location points to where to store
+      ObjUpvalue** upvaluesArray = closure->upvalues;
+      auto upvaluePtrReg = cc.newUIntPtr();
+      cc.mov(upvaluePtrReg, (uint64_t)&upvaluesArray[slot]);
+      // Load the ObjUpvalue*
+      auto upvalueReg = cc.newGpx();
+      cc.ldr(upvalueReg, a64::Mem(upvaluePtrReg));
+      // Load the location pointer from the upvalue
+      auto locationReg = cc.newGpx();
+      cc.ldr(locationReg, a64::Mem(upvalueReg, offsetof(ObjUpvalue, location)));
+      // Store the value to location
+      cc.str(valueReg, a64::Mem(locationReg));
+      // Don't pop - value stays on stack
+      break;
+    }
     case OP_GREATER: {
       // TODO verify a number
       PEEK(b, 0);
@@ -560,6 +596,35 @@ if(registerStackTop % 2 == 1) { \
 
       // TODO runtime error if result is false
       cc.bind(endLabel);
+      break;
+    }
+    case OP_GET_SUPER: {
+      FLUSH_REGISTER_CACHE();
+      auto constant = READ_CONSTANT();
+      auto nameReg = cc.newGpx();
+      auto qnanBits = cc.newGpx();
+      cc.mov(qnanBits, ~(SIGN_BIT | QNAN));
+      cc.ldr(nameReg, constant);
+      // AS_OBJ to get ObjString*
+      cc.and_(nameReg, nameReg, qnanBits);
+
+      // Pop superclass from stack
+      PEEK(superclassReg, 0);
+      POP();
+      // AS_CLASS - extract the object pointer
+      cc.and_(superclassReg, superclassReg, qnanBits);
+
+      // Call bindMethod(superclass, name)
+      auto bindMethodReg = cc.newGpx();
+      cc.mov(bindMethodReg, (uint64_t)&bindMethod);
+      InvokeNode* call_bindMethod;
+      cc.invoke(&call_bindMethod, bindMethodReg, FuncSignatureT<bool, ObjClass*, ObjString*>());
+      call_bindMethod->setArg(0, superclassReg);
+      call_bindMethod->setArg(1, nameReg);
+      auto resultReg = cc.newGpw();
+      call_bindMethod->setRet(0, resultReg);
+
+      // TODO runtime error if result is false
       break;
     }
     case OP_SET_PROPERTY: {
@@ -809,6 +874,22 @@ if(registerStackTop % 2 == 1) { \
 
       break;
     }
+    case OP_CLOSE_UPVALUE: {
+      FLUSH_REGISTER_CACHE();
+      // closeUpvalues(vm.stackTop - 1)
+      auto derefStackTopPtrReg = cc.newGpx();
+      cc.ldr(derefStackTopPtrReg, a64::Mem(stackTopPtrReg));
+      cc.sub(derefStackTopPtrReg, derefStackTopPtrReg, sizeof(Value));
+
+      auto closeUpvaluesReg = cc.newGpx();
+      cc.mov(closeUpvaluesReg, (uint64_t)&closeUpvalues);
+      InvokeNode* call_closeUpvalues;
+      cc.invoke(&call_closeUpvalues, closeUpvaluesReg, FuncSignatureT<void, Value*>());
+      call_closeUpvalues->setArg(0, derefStackTopPtrReg);
+
+      POP();
+      break;
+    }
     case OP_CLASS: {
       FLUSH_REGISTER_CACHE(); // for garbage collection
       auto constant = READ_CONSTANT();
@@ -832,6 +913,40 @@ if(registerStackTop % 2 == 1) { \
       cc.orn(classReg, classReg, qnanBits);
 
       PUSH_REG(classReg);
+      break;
+    }
+    case OP_INHERIT: {
+      FLUSH_REGISTER_CACHE();
+      auto qnanBits = cc.newGpx();
+      cc.mov(qnanBits, ~(SIGN_BIT | QNAN));
+
+      // peek(1) is superclass, peek(0) is subclass
+      PEEK(superclassValReg, 1);
+      PEEK(subclassValReg, 0);
+
+      // TODO verify superclass is actually a class
+
+      // AS_CLASS - extract the object pointers
+      auto superclassReg = cc.newGpx();
+      auto subclassReg = cc.newGpx();
+      cc.and_(superclassReg, superclassValReg, qnanBits);
+      cc.and_(subclassReg, subclassValReg, qnanBits);
+
+      // Get pointers to methods tables
+      auto superMethodsReg = cc.newGpx();
+      auto subMethodsReg = cc.newGpx();
+      cc.add(superMethodsReg, superclassReg, offsetof(ObjClass, methods));
+      cc.add(subMethodsReg, subclassReg, offsetof(ObjClass, methods));
+
+      // Call tableAddAll(&superclass->methods, &subclass->methods)
+      auto tableAddAllReg = cc.newGpx();
+      cc.mov(tableAddAllReg, (uint64_t)&tableAddAll);
+      InvokeNode* call_tableAddAll;
+      cc.invoke(&call_tableAddAll, tableAddAllReg, FuncSignatureT<void, Table*, Table*>());
+      call_tableAddAll->setArg(0, superMethodsReg);
+      call_tableAddAll->setArg(1, subMethodsReg);
+
+      POP(); // Pop subclass
       break;
     }
     case OP_METHOD: {
@@ -876,6 +991,41 @@ if(registerStackTop % 2 == 1) { \
       call_invoke->setArg(1, argCountReg);
       auto resultReg = cc.newGpw();
       call_invoke->setRet(0, resultReg);
+
+      // TODO return runtime error if false result
+      break;
+    }
+    case OP_SUPER_INVOKE: {
+      FLUSH_REGISTER_CACHE();
+
+      auto constant = READ_CONSTANT();
+      auto methodNameReg = cc.newGpx();
+      auto qnanBits = cc.newGpx();
+      cc.mov(qnanBits, ~(SIGN_BIT | QNAN));
+      cc.ldr(methodNameReg, constant);
+      // AS_OBJ to get ObjString*
+      cc.and_(methodNameReg, methodNameReg, qnanBits);
+
+      int argCount = READ_BYTE();
+      auto argCountReg = cc.newGpw();
+      cc.mov(argCountReg, argCount);
+
+      // Pop superclass from stack
+      PEEK(superclassReg, 0);
+      POP();
+      // AS_CLASS - extract the object pointer
+      cc.and_(superclassReg, superclassReg, qnanBits);
+
+      // Call invokeFromClass(superclass, methodName, argCount)
+      auto invokeFromClassReg = cc.newGpx();
+      cc.mov(invokeFromClassReg, (uint64_t)&invokeFromClass);
+      InvokeNode* call_invokeFromClass;
+      cc.invoke(&call_invokeFromClass, invokeFromClassReg, FuncSignatureT<bool, ObjClass*, ObjString*, int>());
+      call_invokeFromClass->setArg(0, superclassReg);
+      call_invokeFromClass->setArg(1, methodNameReg);
+      call_invokeFromClass->setArg(2, argCountReg);
+      auto resultReg = cc.newGpw();
+      call_invokeFromClass->setRet(0, resultReg);
 
       // TODO return runtime error if false result
       break;
